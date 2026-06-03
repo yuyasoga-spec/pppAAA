@@ -1,0 +1,3156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>上長評価ダッシュボード</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f4f1;--surf:#ffffff;--surf2:#f0eee9;--surf3:#e6e3dd;--surf4:#d8d4cc;
+  --ink:#18160f;--ink2:#5c574e;--ink3:#9c9589;--ink4:#bfb9af;
+  --bdr:rgba(0,0,0,.07);--bdr2:rgba(0,0,0,.13);--bdr3:rgba(0,0,0,.2);
+  --blue:#1a5fd4;--blue-l:#e8effc;--blue-d:#1249ab;
+  --green:#167a40;--green-l:#e3f5eb;--green-d:#0f5a2e;
+  --red:#c41b1b;--red-l:#fde8e8;
+  --amber:#a85f00;--amber-l:#fef3dc;
+  --purple:#5b21b6;--purple-l:#ede9fe;
+  --teal:#0e7490;--teal-l:#e0f4f8;
+  --r:6px;--rl:12px;--rxl:18px;
+  --sh:0 1px 2px rgba(0,0,0,.05),0 0 0 0.5px rgba(0,0,0,.06);
+  --sh-md:0 4px 16px rgba(0,0,0,.08),0 1px 3px rgba(0,0,0,.05);
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#111009;--surf:#1c1a14;--surf2:#242119;--surf3:#2d2a21;--surf4:#38342a;
+  --ink:#f0ece3;--ink2:#a89f90;--ink3:#6e6659;--ink4:#4a4438;
+  --bdr:rgba(255,255,255,.07);--bdr2:rgba(255,255,255,.13);--bdr3:rgba(255,255,255,.22);
+  --blue:#5b9cf6;--blue-l:#1a2d4e;--blue-d:#93c5fd;
+  --green:#4ade80;--green-l:#0f3320;--green-d:#86efac;
+  --red:#f87171;--red-l:#3f1212;
+  --amber:#fbbf24;--amber-l:#3d2400;
+  --purple:#a78bfa;--purple-l:#2e1a5e;
+  --teal:#22d3ee;--teal-l:#0c2f38;
+  --sh:0 1px 2px rgba(0,0,0,.3),0 0 0 0.5px rgba(255,255,255,.05);
+  --sh-md:0 4px 16px rgba(0,0,0,.5);
+}}
+html,body{height:100%;font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.65}
+button,input,select,textarea{font-family:inherit}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--surf4);border-radius:99px}
+
+/* LAYOUT */
+.shell{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:232px;background:var(--surf);border-right:0.5px solid var(--bdr2);display:flex;flex-direction:column;flex-shrink:0;height:100vh;overflow-y:auto}
+.main{flex:1;min-width:0;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.topbar{background:var(--surf);border-bottom:0.5px solid var(--bdr2);padding:0 24px;height:52px;min-height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px}
+.content{flex:1;min-height:0;overflow-y:auto;padding:24px;-webkit-overflow-scrolling:touch}
+
+/* SIDEBAR */
+.sb-logo{padding:16px 16px 12px;border-bottom:0.5px solid var(--bdr)}
+.sb-logo-title{font-size:13px;font-weight:600;color:var(--ink);letter-spacing:.01em}
+.sb-logo-sub{font-size:10px;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase;margin-top:2px}
+.sb-section{padding:10px 8px 4px}
+.sb-sec-label{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink4);font-weight:500;padding:0 8px;margin-bottom:4px}
+.nav-btn{display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;border-radius:var(--r);border:none;background:none;color:var(--ink2);font-size:13px;cursor:pointer;transition:all .14s;text-align:left}
+.nav-btn:hover{background:var(--surf2);color:var(--ink)}
+.nav-btn.active{background:var(--blue-l);color:var(--blue);font-weight:500}
+.nav-btn svg{flex-shrink:0;opacity:.7}
+.nav-btn.active svg{opacity:1}
+
+.person-row{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:var(--r);cursor:pointer;transition:all .14s;margin-bottom:1px}
+.person-row:hover{background:var(--surf2)}
+.person-row.active{background:var(--surf3)}
+.av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0}
+.person-info{flex:1;min-width:0}
+.person-name{font-size:12px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.person-role{font-size:10px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.del-btn{background:none;border:none;cursor:pointer;color:var(--ink4);font-size:13px;padding:2px 5px;border-radius:4px;opacity:0;transition:all .14s;line-height:1}
+.person-row:hover .del-btn{opacity:1}
+.del-btn:hover{color:var(--red);background:var(--red-l)}
+
+.add-person-btn{display:flex;align-items:center;gap:7px;margin:6px 8px 8px;padding:6px 10px;border:0.5px dashed var(--bdr3);border-radius:var(--r);background:none;color:var(--ink3);font-size:12px;cursor:pointer;width:calc(100% - 16px);transition:all .14s}
+.add-person-btn:hover{background:var(--surf2);color:var(--ink);border-style:solid}
+.sb-footer{margin-top:auto;padding:12px 16px;border-top:0.5px solid var(--bdr);font-size:10px;color:var(--ink4)}
+
+/* TOPBAR */
+.tb-left{min-width:0}
+.tb-title{font-size:15px;font-weight:600;color:var(--ink)}
+.tb-sub{font-size:11px;color:var(--ink3);margin-top:1px}
+.tb-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border:0.5px solid var(--bdr2);border-radius:var(--r);background:var(--surf);color:var(--ink);cursor:pointer;font-size:12px;transition:all .13s;white-space:nowrap;line-height:1.4}
+.btn:hover{background:var(--surf2);border-color:var(--bdr3)}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn-primary:hover{background:var(--blue-d);border-color:var(--blue-d)}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn-icon{padding:5px 8px}
+.seg{border-radius:0;border-right-width:0}
+.seg:first-child{border-radius:var(--r) 0 0 var(--r)}
+.seg:last-child{border-radius:0 var(--r) var(--r) 0;border-right-width:0.5px}
+.seg.on{background:var(--surf3);font-weight:500;color:var(--ink)}
+
+/* CARDS */
+.card{background:var(--surf);border:0.5px solid var(--bdr2);border-radius:var(--rl);padding:18px 20px;margin-bottom:14px;box-shadow:var(--sh)}
+.card-hd{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.card-title{font-size:13px;font-weight:600;color:var(--ink)}
+
+/* METRIC STRIP */
+.metric-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:14px}
+.metric{background:var(--surf);border:0.5px solid var(--bdr2);border-radius:var(--rl);padding:14px 16px;box-shadow:var(--sh)}
+.metric-label{font-size:10px;color:var(--ink3);letter-spacing:.05em;margin-bottom:5px}
+.metric-num{font-size:22px;font-weight:600;font-family:'DM Mono',monospace;line-height:1;color:var(--ink)}
+.metric-sub{font-size:10px;color:var(--ink3);margin-top:5px}
+.metric.up .metric-num{color:var(--green)}
+.metric.dn .metric-num{color:var(--red)}
+.metric.md .metric-num{color:var(--amber)}
+
+/* BADGE */
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
+.b-plus{background:var(--green-l);color:var(--green-d)}
+.b-minus{background:var(--red-l);color:var(--red)}
+.b-neutral{background:var(--amber-l);color:var(--amber)}
+.b-cat{background:var(--teal-l);color:var(--teal);font-size:10px}
+
+/* CHART */
+.ch-wrap{position:relative;width:100%}
+.h240{height:240px}.h280{height:280px}.h320{height:320px}.h180{height:180px}
+
+/* COMMENT CATEGORY */
+.cat-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:14px}
+.cat-tab{padding:4px 12px;border-radius:20px;border:0.5px solid var(--bdr2);background:var(--surf2);color:var(--ink2);font-size:11px;cursor:pointer;transition:all .13s}
+.cat-tab:hover{background:var(--surf3)}
+.cat-tab.on{background:var(--teal-l);border-color:var(--teal);color:var(--teal);font-weight:500}
+
+/* COMMENT CARD */
+.cmt-card{border:0.5px solid var(--bdr);border-radius:var(--r);padding:10px 13px;margin-bottom:7px;background:var(--surf);border-left-width:3px}
+.cmt-card.plus{border-left-color:var(--green)}
+.cmt-card.minus{border-left-color:var(--red)}
+.cmt-card.neutral{border-left-color:var(--amber)}
+.cmt-hd{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap}
+.cmt-text{font-size:13px;color:var(--ink);line-height:1.6}
+.cmt-summary{font-size:11px;color:var(--ink3);margin-top:5px;padding-top:5px;border-top:0.5px solid var(--bdr);font-style:italic}
+.cmt-meta{font-size:10px;color:var(--ink3);font-family:'DM Mono',monospace}
+
+/* SCORE ITEM */
+.score-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:7px;margin-bottom:14px}
+.score-item{background:var(--surf2);border-radius:var(--r);padding:8px 11px;display:flex;justify-content:space-between;align-items:center;border:0.5px solid var(--bdr)}
+.score-name{font-size:11px;color:var(--ink2);flex:1;margin-right:8px;line-height:1.3}
+.score-val{font-family:'DM Mono',monospace;font-size:14px;font-weight:500}
+.hi{color:var(--green)}.md{color:var(--amber)}.lo{color:var(--red)}
+
+/* FORM */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
+.fg{display:flex;flex-direction:column;gap:3px}
+.fg label{font-size:11px;color:var(--ink2);font-weight:500}
+.fg input,.fg select,.fg textarea{border:0.5px solid var(--bdr2);border-radius:var(--r);padding:6px 9px;font-size:12px;background:var(--surf);color:var(--ink);transition:border-color .13s;width:100%}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--blue)}
+.fg textarea{resize:vertical;min-height:70px}
+
+/* INPUT SECTION TABS */
+.ent-cat-nav{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
+.ent-cat-tab{padding:5px 13px;border-radius:var(--r);border:0.5px solid var(--bdr2);background:var(--surf2);color:var(--ink2);font-size:12px;cursor:pointer;transition:all .13s}
+.ent-cat-tab:hover{background:var(--surf3)}
+.ent-cat-tab.on{background:var(--ink);color:var(--surf);border-color:var(--ink)}
+
+/* COMPARE */
+.cmp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:14px}
+.cmp-card{background:var(--surf);border:0.5px solid var(--bdr2);border-radius:var(--rl);padding:16px;box-shadow:var(--sh)}
+
+/* PREDICTION */
+.pred-box{background:var(--purple-l);border:0.5px solid var(--purple);border-radius:var(--rl);padding:18px 20px;margin-top:12px}
+.pred-num{font-size:28px;font-weight:700;color:var(--purple);font-family:'DM Mono',monospace;margin:6px 0}
+.pred-detail{font-size:12px;color:var(--ink2);line-height:1.8}
+
+/* LEGEND */
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--ink3);margin-bottom:10px}
+.ld{display:flex;align-items:center;gap:4px}
+.ldd{width:10px;height:3px;border-radius:2px;flex-shrink:0}
+
+/* ALERT */
+.alert{display:flex;align-items:flex-start;gap:8px;padding:10px 13px;border-radius:var(--r);font-size:12px;margin-bottom:8px;border:0.5px solid}
+.alert-warn{background:var(--red-l);border-color:var(--red);color:var(--red)}
+.alert-ok{background:var(--green-l);border-color:var(--green);color:var(--green-d)}
+.alert-info{background:var(--blue-l);border-color:var(--blue);color:var(--blue)}
+
+/* LOADER */
+.loader{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink3);padding:6px 0}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--blue);animation:bl 1.2s ease-in-out infinite}
+.dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+@keyframes bl{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal-bg.hide{display:none}
+.modal{background:var(--surf);border-radius:var(--rxl);padding:24px 26px;max-width:400px;width:100%;box-shadow:var(--sh-md)}
+.modal h3{font-size:15px;font-weight:600;margin-bottom:16px}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+
+/* EMPTY */
+.empty{text-align:center;padding:40px 20px;color:var(--ink3);font-size:12px}
+
+/* INPUT GROUP for comments */
+.comment-input-group{background:var(--surf2);border:0.5px solid var(--bdr);border-radius:var(--rl);padding:14px 16px;margin-bottom:10px}
+.cig-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px}
+.cig-label{font-size:12px;font-weight:500;color:var(--teal)}
+.cig-reviewers{display:flex;flex-direction:column;gap:6px}
+.reviewer-row{display:flex;gap:6px;align-items:flex-start}
+.reviewer-name-in{width:90px;flex-shrink:0;font-size:12px;border:0.5px solid var(--bdr2);border-radius:var(--r);padding:5px 8px;background:var(--surf);color:var(--ink)}
+.reviewer-comment-in{flex:1;font-size:12px;border:0.5px solid var(--bdr2);border-radius:var(--r);padding:5px 8px;background:var(--surf);color:var(--ink);min-height:60px;resize:vertical}
+.del-reviewer{background:none;border:none;cursor:pointer;color:var(--ink4);font-size:16px;padding:3px 5px;border-radius:4px;line-height:1;transition:all .13s;flex-shrink:0;margin-top:2px}
+.del-reviewer:hover{color:var(--red);background:var(--red-l)}
+.add-reviewer-btn{font-size:11px;color:var(--ink3);background:none;border:0.5px dashed var(--bdr2);border-radius:var(--r);padding:4px 10px;cursor:pointer;margin-top:4px;transition:all .13s}
+.add-reviewer-btn:hover{background:var(--surf3);color:var(--ink)}
+
+/* SENTIMENT PICKER */
+.sentiment-pick{display:flex;gap:3px;flex-shrink:0;margin-top:2px}
+.sp-btn{border:0.5px solid var(--bdr2);border-radius:var(--r);padding:4px 9px;font-size:11px;cursor:pointer;background:var(--surf);color:var(--ink2);transition:all .13s;line-height:1.3;white-space:nowrap;font-family:inherit}
+.sp-btn:hover{filter:brightness(.95)}
+.sp-btn.sp-plus{background:var(--surf);color:var(--ink3)}
+.sp-btn.sp-plus.on{background:var(--green-l);color:var(--green-d);border-color:var(--green)}
+.sp-btn.sp-minus{background:var(--surf);color:var(--ink3)}
+.sp-btn.sp-minus.on{background:var(--red-l);color:var(--red);border-color:var(--red)}
+.sp-btn.sp-neutral{background:var(--surf);color:var(--ink3)}
+.sp-btn.sp-neutral.on{background:var(--amber-l);color:var(--amber);border-color:var(--amber)}
+.reviewer-row{display:flex;gap:6px;align-items:flex-start;padding:10px 12px;background:var(--surf);border:0.5px solid var(--bdr);border-radius:var(--r);transition:border-color .13s}
+.reviewer-row.row-plus{border-left:3px solid var(--green)}
+.reviewer-row.row-minus{border-left:3px solid var(--red)}
+.reviewer-row.row-neutral{border-left:3px solid var(--amber)}
+.row-main{display:flex;flex-direction:column;gap:5px;flex:1;min-width:0}
+.row-top{display:flex;gap:6px;align-items:center}
+.row-bottom{display:flex;gap:6px;align-items:flex-start}
+
+/* STATUS */
+.st-ok{font-size:11px;color:var(--green);display:flex;align-items:center;gap:4px}
+.st-err{font-size:11px;color:var(--red)}
+
+/* AVATAR PALETTE */
+.av0{background:#dbeafe;color:#1d4ed8}
+.av1{background:#d1fae5;color:#065f46}
+.av2{background:#fce7f3;color:#9d174d}
+.av3{background:#fef3c7;color:#92400e}
+.av4{background:#ede9fe;color:#5b21b6}
+.av5{background:#ccfbf1;color:#0f766e}
+.av6{background:#fee2e2;color:#991b1b}
+.av7{background:#e0f2fe;color:#075985}
+
+/* PANEL */
+.panel{display:none!important}.panel.show{display:block!important}
+
+/* QUESTION EDITOR */
+.q-editor-row{display:flex;align-items:center;gap:6px;padding:7px 10px;background:var(--surf);border:.5px solid var(--bdr);border-radius:var(--r);margin-bottom:5px}
+.q-editor-row:hover{border-color:var(--bdr2)}
+.q-label-in{flex:1;min-width:0;border:.5px solid var(--bdr2);border-radius:var(--r);padding:5px 8px;font-size:12px;background:var(--surf);color:var(--ink)}
+.q-label-in:focus{outline:none;border-color:var(--blue)}
+.q-tag-sel{border:.5px solid var(--bdr2);border-radius:var(--r);padding:5px 8px;font-size:11px;background:var(--surf);color:var(--ink);flex-shrink:0;max-width:140px}
+.q-score-in{width:56px;flex-shrink:0;border:.5px solid var(--bdr2);border-radius:var(--r);padding:5px 8px;font-size:12px;background:var(--surf);color:var(--ink);text-align:center}
+.q-del-btn{background:none;border:none;cursor:pointer;color:var(--ink4);font-size:15px;padding:2px 6px;border-radius:4px;line-height:1;transition:all .13s;flex-shrink:0}
+.q-del-btn:hover{color:var(--red);background:var(--red-l)}
+.tag-badge{display:inline-block;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:500;white-space:nowrap}
+.tag-ops{background:#e0f4f8;color:#0e7490}
+.tag-support{background:#d1fae5;color:#065f46}
+.tag-system{background:#ede9fe;color:#5b21b6}
+.tag-comm{background:#fef3c7;color:#92400e}
+.tag-fair{background:#fee2e2;color:#991b1b}
+.tag-none{background:var(--surf3);color:var(--ink3)}
+.score-item .tag-badge{font-size:9px;margin-left:4px}
+
+/* ===== DEPT ACCORDION ===== */
+.dept-group{margin-bottom:1px}
+.dept-hd{display:flex;align-items:center;gap:6px;padding:5px 8px 5px 6px;border-radius:var(--r);cursor:pointer;user-select:none;transition:background .13s}
+.dept-hd:hover{background:var(--surf2)}
+.dept-hd.drag-over-hd{background:var(--blue-l)}
+.dept-chevron{font-size:9px;color:var(--ink4);transition:transform .18s;flex-shrink:0;width:12px;display:inline-block;text-align:center}
+.dept-chevron.open{transform:rotate(90deg)}
+.dept-label{font-size:11px;font-weight:600;color:var(--ink2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dept-badge{font-size:10px;color:var(--ink4);background:var(--surf3);padding:1px 6px;border-radius:10px;flex-shrink:0}
+.dept-edit-btn{background:none;border:none;cursor:pointer;color:var(--ink4);font-size:11px;padding:2px 5px;border-radius:3px;opacity:0;transition:all .12s;flex-shrink:0;line-height:1}
+.dept-hd:hover .dept-edit-btn{opacity:1}
+.dept-edit-btn:hover{color:var(--blue);background:var(--blue-l)}
+.dept-del-btn{background:none;border:none;cursor:pointer;color:var(--ink4);font-size:13px;padding:2px 5px;border-radius:3px;opacity:0;transition:all .12s;flex-shrink:0;line-height:1}
+.dept-hd:hover .dept-del-btn{opacity:1}
+.dept-del-btn:hover{color:var(--red);background:var(--red-l)}
+.dept-body{display:none;padding-left:6px}
+.dept-body.open{display:block}
+.dept-body.drag-over{outline:2px dashed var(--blue);outline-offset:-2px;border-radius:var(--r);min-height:28px;background:var(--blue-l)}
+.add-dept-btn{display:flex;align-items:center;gap:6px;margin:4px 8px 6px;padding:5px 8px;border:.5px dashed var(--bdr2);border-radius:var(--r);background:none;color:var(--ink4);font-size:11px;cursor:pointer;width:calc(100% - 16px);transition:all .13s}
+.add-dept-btn:hover{background:var(--surf2);color:var(--ink);border-style:solid}
+/* drag handle */
+.drag-handle{color:var(--ink4);font-size:11px;cursor:grab;padding:0 3px;opacity:0;transition:opacity .12s;flex-shrink:0;user-select:none}
+.person-row:hover .drag-handle{opacity:1}
+.person-row.dragging{opacity:.35;pointer-events:none}
+
+/* EDIT MODE */
+.edit-mode-banner{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--amber-l);border:.5px solid var(--amber);border-radius:var(--r);font-size:12px;color:var(--amber);margin-bottom:14px}
+.edit-mode-banner strong{font-weight:600}
+.month-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;border:.5px solid var(--bdr2);background:var(--surf2);font-size:12px;cursor:pointer;transition:all .13s;color:var(--ink2)}
+.month-pill:hover{background:var(--surf3);border-color:var(--bdr3)}
+.month-pill.active{background:var(--blue-l);border-color:var(--blue);color:var(--blue);font-weight:500}
+.month-pill .del-pill{background:none;border:none;cursor:pointer;color:inherit;opacity:.5;font-size:13px;padding:0 0 0 4px;line-height:1}
+.month-pill .del-pill:hover{opacity:1}
+
+/* SPREADSHEET IMPORT */
+.sheet-url-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.sheet-url-in{flex:1;min-width:200px;border:.5px solid var(--bdr2);border-radius:var(--r);padding:6px 9px;font-size:12px;background:var(--surf);color:var(--ink)}
+.sheet-url-in:focus{outline:none;border-color:var(--blue)}
+.import-log{font-size:11px;color:var(--ink3);background:var(--surf2);border-radius:var(--r);padding:8px 10px;margin-top:8px;line-height:1.7;max-height:120px;overflow-y:auto;white-space:pre-wrap;display:none}
+.import-log.show{display:block}
+.col-map-row{display:flex;gap:6px;align-items:center;padding:5px 0;border-bottom:.5px solid var(--bdr);font-size:12px}
+.col-map-row:last-child{border:none}
+.col-map-label{flex:1;color:var(--ink2)}
+.col-map-sel{border:.5px solid var(--bdr2);border-radius:var(--r);padding:3px 6px;font-size:11px;background:var(--surf);color:var(--ink)}
+
+/* CSV DROP ZONE */
+#csv-dropzone.dz-over{border-color:var(--blue);background:var(--blue-l)}
+#csv-dropzone.dz-over div{color:var(--blue)}
+
+/* PERSON DETAIL MODAL */
+.modal.modal-xl{max-width:780px;width:95vw;max-height:88vh;display:flex;flex-direction:column;padding:0;overflow:hidden}
+.modal-xl .modal-header{padding:18px 24px 14px;border-bottom:.5px solid var(--bdr);flex-shrink:0}
+.modal-xl .modal-body{flex:1;overflow-y:auto;padding:18px 24px;-webkit-overflow-scrolling:touch}
+.modal-xl .modal-footer{padding:12px 24px;border-top:.5px solid var(--bdr);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0}
+.month-tab-bar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:14px}
+.month-tab{padding:4px 12px;border-radius:20px;border:.5px solid var(--bdr2);background:var(--surf2);color:var(--ink2);font-size:11px;cursor:pointer;transition:all .13s;white-space:nowrap}
+.month-tab:hover{background:var(--surf3)}
+.month-tab.on{background:var(--blue-l);border-color:var(--blue);color:var(--blue);font-weight:500}
+.detail-score-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;margin-bottom:14px}
+.detail-score-item{background:var(--surf2);border-radius:var(--r);padding:7px 10px;display:flex;justify-content:space-between;align-items:center;border:.5px solid var(--bdr)}
+.detail-score-name{font-size:11px;color:var(--ink2);flex:1;margin-right:6px;line-height:1.3}
+.detail-score-val{font-family:'DM Mono',monospace;font-size:13px;font-weight:600;flex-shrink:0}
+</style>
+</head>
+<body>
+
+
+<!-- MODAL: 部署追加 -->
+<div class="modal-bg hide" id="modal-dept-add">
+  <div class="modal">
+    <h3>部署を追加</h3>
+    <div class="fg" style="margin-bottom:4px">
+      <label>部署名</label>
+      <input id="dept-name-in" placeholder="例：営業部" maxlength="20">
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeDeptAddModal()">キャンセル</button>
+      <button class="btn btn-primary" onclick="confirmDeptAdd()">追加</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 部署編集 -->
+<div class="modal-bg hide" id="modal-dept-edit">
+  <div class="modal">
+    <h3>部署を編集</h3>
+    <div class="fg" style="margin-bottom:4px">
+      <label>部署名</label>
+      <input id="dept-edit-name-in" placeholder="部署名" maxlength="20">
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeDeptEditModal()">キャンセル</button>
+      <button class="btn btn-primary" onclick="confirmDeptEdit()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 対象者追加（部署選択付き） -->
+<div class="modal-bg hide" id="modal-person-add">
+  <div class="modal">
+    <h3>評価対象者を追加</h3>
+    <div class="form-grid" style="grid-template-columns:1fr">
+      <div class="fg"><label>氏名</label><input id="pn-name-in" placeholder="例：山田 太郎" maxlength="20"></div>
+      <div class="fg"><label>役職（任意）</label><input id="pn-role-in" placeholder="例：課長" maxlength="30"></div>
+      <div class="fg"><label>部署</label>
+        <select id="pn-dept-in">
+          <option value="">未分類</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closePersonAddModal()">キャンセル</button>
+      <button class="btn btn-primary" onclick="confirmPersonAdd()">追加する</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: person detail -->
+<div class="modal-bg hide" id="modal-person-detail">
+  <div class="modal modal-xl">
+    <div class="modal-header">
+      <div id="pd-header" style="display:flex;align-items:center;gap:10px">
+        <div id="pd-avatar" class="av" style="width:36px;height:36px;font-size:14px"></div>
+        <div>
+          <div id="pd-name" style="font-size:16px;font-weight:600;color:var(--ink)"></div>
+          <div id="pd-role" style="font-size:11px;color:var(--ink3)"></div>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+          <div id="pd-avg-badge" style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700"></div>
+          <div id="pd-pr-badge" style="font-size:12px;color:var(--ink3)"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-body">
+      <!-- 推移グラフ -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-title" style="margin-bottom:10px">📊 評価スコア推移</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px">
+          <div class="legend"><div class="ld"><div class="ldd" style="background:#1a5fd4"></div>全体平均</div></div>
+          <div id="pd-cat-legend" class="legend"></div>
+        </div>
+        <div class="ch-wrap h220"><canvas id="pd-chart"></canvas></div>
+      </div>
+      <!-- 月タブ -->
+      <div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:8px">月別詳細</div>
+      <div class="month-tab-bar" id="pd-month-tabs"></div>
+      <!-- 月別スコア -->
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-title" style="margin-bottom:10px" id="pd-score-title">スコア一覧</div>
+        <div class="detail-score-grid" id="pd-scores"></div>
+      </div>
+      <!-- 月別コメント -->
+      <div class="card">
+        <div class="card-title" style="margin-bottom:10px">💬 コメント</div>
+        <div id="pd-comments"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closePersonDetailModal()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: add person (旧・非表示) -->
+<div class="modal-bg hide" id="modal-add" style="display:none">
+  <div class="modal">
+    <h3>評価対象者を追加</h3>
+    <div class="form-grid" style="grid-template-columns:1fr">
+      <div class="fg"><label>氏名</label><input id="mn-name" placeholder="例：山田 太郎" maxlength="20"></div>
+      <div class="fg"><label>部署・役職（任意）</label><input id="mn-role" placeholder="例：営業部 課長" maxlength="30"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">キャンセル</button>
+      <button class="btn btn-primary" onclick="confirmAdd()">追加する</button>
+    </div>
+  </div>
+</div>
+
+<div class="shell">
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logo-title">上長評価 Dashboard</div>
+    <div class="sb-logo-sub">HR Analytics</div>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-sec-label">メニュー</div>
+    <button class="nav-btn active" id="nav-allboard" onclick="goView('allboard',this)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 4v4l3 2"/></svg>
+      全体ダッシュボード
+    </button>
+    <button class="nav-btn" id="nav-overview" onclick="goView('overview',this)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+      個人概要
+    </button>
+    <button class="nav-btn" id="nav-comments" onclick="goView('comments',this)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12v8H9l-3 2v-2H2z"/></svg>
+      コメント分析
+    </button>
+    <button class="nav-btn" id="nav-compare" onclick="goView('compare',this)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13V8m4 5V5m4 8V3m4 10V6"/></svg>
+      メンバー比較
+    </button>
+
+    <button class="nav-btn" id="nav-insight" onclick="goView('insight',this)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12l3-4 3 2 3-5 3 3"/></svg>インサイト分析
+    </button>
+    <button class="nav-btn" id="nav-predict" onclick="goView('predict',this)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12l4-4 3 2 5-6"/></svg>
+      未来予測
+    </button>
+    <button class="nav-btn" id="nav-input" onclick="goView('input',this)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v12M2 8h12"/></svg>
+      データ入力
+    </button>
+  </div>
+
+  <div class="sb-section" style="flex:1">
+    <div class="sb-sec-label">評価対象者</div>
+    <div id="sb-people"></div>
+  </div>
+  <button class="add-dept-btn" onclick="openDeptAddModal()">
+    <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v12M2 8h12"/></svg>部署を追加
+  </button>
+  <button class="add-person-btn" onclick="openPersonAddModal()">
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v12M2 8h12"/></svg>
+    対象者を追加
+  </button>
+
+  <div class="sb-footer">GitHub Pages 対応 · Claude AI 搭載</div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="tb-left">
+      <div class="tb-title" id="tb-title">概要ダッシュボード</div>
+      <div class="tb-sub" id="tb-sub">評価対象者を選択してください</div>
+    </div>
+    <div class="tb-right">
+      <select id="person-sw" onchange="switchPerson(this.value)" style="border:0.5px solid var(--bdr2);border-radius:var(--r);padding:5px 9px;font-size:12px;background:var(--surf);color:var(--ink)"></select>
+      <button class="btn btn-sm" onclick="exportCSV()">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12h10M8 3v7M5 7l3 3 3-3"/></svg>CSV出力
+      </button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ALL BOARD -->
+    <div id="view-allboard" class="panel">
+      <div class="metric-row" id="ab-metrics"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div class="card" style="margin-bottom:0">
+          <div class="card-title" style="margin-bottom:12px">🏆 評価スコア ランキング（最新月）</div>
+          <div id="ab-ranking"></div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-title" style="margin-bottom:12px">⚠️ 4点未満の項目アラート</div>
+          <div id="ab-alerts"></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">
+        <div class="card" style="margin-bottom:0">
+          <div class="card-title" style="margin-bottom:12px">📈 上昇率トップ（前月比）</div>
+          <div id="ab-rising"></div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-title" style="margin-bottom:12px">📉 下落率ワースト（前月比）</div>
+          <div id="ab-falling"></div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-title" style="margin-bottom:12px">🔴 評価スコア ワースト3</div>
+          <div id="ab-worst"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">カテゴリー別 全評価者平均（最新月）</div>
+        <div class="legend" id="ab-cat-legend"></div>
+        <div class="ch-wrap h280"><canvas id="ab-cat-chart" role="img" aria-label="カテゴリー別全評価者比較">カテゴリー別全評価者スコア比較グラフ</canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">全評価者 平均スコア推移</div>
+        <div class="legend" id="ab-trend-legend"></div>
+        <div class="ch-wrap h240"><canvas id="ab-trend-chart" role="img" aria-label="全評価者スコア推移">全評価者スコア推移グラフ</canvas></div>
+      </div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div id="view-overview" class="panel">
+      <div class="metric-row" id="ov-metrics"></div>
+
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-title">月別 評価スコア推移</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+            <div class="btn-group" style="display:flex;gap:0">
+              <button class="btn btn-sm seg on" id="bm-all" onclick="setOvMode('all',this)">全平均</button>
+              <button class="btn btn-sm seg" id="bm-pick" onclick="setOvMode('pick',this)">カテゴリー別</button>
+            </div>
+            <select id="ov-item-sel" style="display:none;border:0.5px solid var(--bdr2);border-radius:var(--r);padding:4px 8px;font-size:11px;background:var(--surf);color:var(--ink)" onchange="renderOvChart()"></select>
+          </div>
+        </div>
+        <div class="legend">
+          <div class="ld"><div class="ldd" style="background:#1a5fd4;height:2px"></div>評価点（左軸）</div>
+          <div class="ld"><div class="ldd" style="background:#167a40;height:2px;border-top:2px dashed #167a40;height:0"></div>ポジティブ率%（右軸）</div>
+        </div>
+        <div class="ch-wrap h240"><canvas id="ov-chart" role="img" aria-label="月別評価点とポジティブ率推移">月別評価スコアとポジティブコメント率の折れ線グラフ</canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">項目別スコア（最新月）</div>
+        <div class="score-grid" id="ov-scores"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">カテゴリー別 コメント感情サマリー（最新月）</div>
+        <div class="ch-wrap h180"><canvas id="ov-cat-chart" role="img" aria-label="カテゴリー別感情分布">カテゴリー別プラス・マイナス・ニュートラルの棒グラフ</canvas></div>
+      </div>
+    </div>
+
+    <!-- COMMENTS -->
+    <div id="view-comments" class="panel">
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-title">コメント一覧</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <div style="display:flex;gap:0">
+              <button class="btn btn-sm seg on" id="cf-all" onclick="setCF('all')">すべて</button>
+              <button class="btn btn-sm seg" id="cf-plus" onclick="setCF('plus')">プラス</button>
+              <button class="btn btn-sm seg" id="cf-minus" onclick="setCF('minus')">マイナス</button>
+              <button class="btn btn-sm seg" id="cf-neutral" onclick="setCF('neutral')">ニュートラル</button>
+            </div>
+            <select id="cm-month-sel" onchange="renderComments()" style="border:0.5px solid var(--bdr2);border-radius:var(--r);padding:4px 8px;font-size:11px;background:var(--surf);color:var(--ink)">
+              <option value="">全期間</option>
+            </select>
+          </div>
+        </div>
+        <div class="cat-tabs" id="cm-cat-tabs"></div>
+        <div id="cm-alerts"></div>
+        <div id="cm-list"></div>
+      </div>
+    </div>
+
+    <!-- COMPARE -->
+    <div id="view-compare" class="panel">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">比較するメンバーを選択</div>
+        <div id="cmp-checks" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"></div>
+        <div class="fg" style="max-width:200px">
+          <label>対象月</label>
+          <select id="cmp-month-sel" onchange="renderCompare()">
+            <option value="">最新月</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">項目別スコア比較（レーダーチャート）</div>
+        <div class="legend" id="cmp-radar-legend"></div>
+        <div class="ch-wrap h320"><canvas id="cmp-radar" role="img" aria-label="メンバー別レーダーチャート">メンバーごとの評価項目レーダーチャート</canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">全項目平均 推移比較</div>
+        <div class="legend" id="cmp-trend-legend"></div>
+        <div class="ch-wrap h240"><canvas id="cmp-trend" role="img" aria-label="メンバー別平均推移">メンバーごとの平均スコア推移グラフ</canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">ポジティブ率 推移比較</div>
+        <div class="legend" id="cmp-pos-legend"></div>
+        <div class="ch-wrap h240"><canvas id="cmp-pos" role="img" aria-label="ポジティブ率比較">メンバーごとのポジティブコメント率推移グラフ</canvas></div>
+      </div>
+
+      <div id="cmp-detail-cards"></div>
+    </div>
+
+
+
+    <!-- INSIGHT -->
+    <div id="view-insight" class="panel">
+      <div class="metric-row" id="ins-metrics"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div class="card" style="margin-bottom:0">
+          <div class="card-title" style="margin-bottom:12px">📊 カテゴリー別スコア推移</div>
+          <div class="ch-wrap h240"><canvas id="ins-cat-chart"></canvas></div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-title" style="margin-bottom:12px">🔄 月次変化量（前月比）</div>
+          <div class="ch-wrap h240"><canvas id="ins-diff-chart"></canvas></div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-title" style="margin-bottom:12px">💪 強み・弱み分析（全期間平均）</div>
+        <div id="ins-strength-weakness"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="card" style="margin-bottom:0">
+          <div class="card-title" style="margin-bottom:10px">✅ 高評価の質問 TOP5</div>
+          <div id="ins-top5"></div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-title" style="margin-bottom:10px">⚠️ 低評価の質問 WORST5</div>
+          <div id="ins-worst5"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PREDICT -->
+    <div id="view-predict" class="panel">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:8px">未来予測シミュレーター</div>
+        <p style="font-size:12px;color:var(--ink2);margin-bottom:14px">評価条件を設定すると、ポジティブ率が最大化するまでの到達時期を予測します。</p>
+        <div class="form-grid">
+          <div class="fg"><label>対象項目</label><select id="pred-item"></select></div>
+          <div class="fg"><label>目標評価点</label><input type="number" id="pred-score" value="4.0" min="1" max="5" step="0.1"></div>
+          <div class="fg"><label>スタッフ数（名）</label><input type="number" id="pred-staff" value="10" min="1"></div>
+        </div>
+        <button class="btn btn-primary" onclick="runPred()">予測を実行</button>
+        <div id="pred-result"></div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:10px">法則性マトリクス（4.0点超え後の成果到達推定月数）</div>
+        <div id="law-matrix"></div>
+      </div>
+    </div>
+
+    <!-- INPUT -->
+    <div id="view-input" class="panel">
+
+      <!-- CSVドロップ取込 -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-hd" style="margin-bottom:12px">
+          <div class="card-title">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px;margin-right:4px"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M2 6h12M6 6v8"/></svg>
+            スプレッドシートCSVから自動取込
+          </div>
+        </div>
+        <p style="font-size:11px;color:var(--ink3);margin-bottom:12px;line-height:1.7">
+          ① Googleスプレッドシートで <strong>「ファイル → ダウンロード → CSV」</strong><br>
+          ② ダウンロードしたCSVファイルを下のエリアにドロップ（またはクリックして選択）<br>
+          ③ 対象者と月を選ぶだけで自動入力されます
+        </p>
+        <!-- ドロップゾーン -->
+        <div id="csv-dropzone"
+          ondragover="event.preventDefault();this.classList.add('dz-over')"
+          ondragleave="this.classList.remove('dz-over')"
+          ondrop="onCsvDrop(event)"
+          onclick="document.getElementById('csv-file-in').click()"
+          style="border:2px dashed var(--bdr2);border-radius:var(--rl);padding:28px 20px;text-align:center;cursor:pointer;transition:all .15s;margin-bottom:10px">
+          <div style="font-size:28px;margin-bottom:6px">📂</div>
+          <div style="font-size:13px;font-weight:500;color:var(--ink2)">CSVファイルをここにドロップ</div>
+          <div style="font-size:11px;color:var(--ink3);margin-top:4px">またはクリックしてファイルを選択</div>
+          <input type="file" id="csv-file-in" accept=".csv" style="display:none" onchange="onCsvFileSelect(event)">
+        </div>
+        <!-- 取込設定（CSVが読み込まれたら表示） -->
+        <div id="csv-import-settings" style="display:none">
+          <div style="background:var(--green-l);border:.5px solid var(--green);border-radius:var(--r);padding:8px 12px;font-size:12px;color:var(--green-d);margin-bottom:12px" id="csv-loaded-msg"></div>
+          <div style="margin-bottom:10px">
+            <div class="fg" style="max-width:180px">
+              <label>取込対象月</label>
+              <input type="month" id="csv-target-month">
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn btn-primary" onclick="applyImport()">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8l4 4 6-8"/></svg>
+              全件を集計してフォームに取込む
+            </button>
+            <button class="btn btn-sm" onclick="resetCsvImport()">やり直す</button>
+            <div id="import-log" style="font-size:11px;color:var(--ink3)"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 月選択カード -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-hd" style="margin-bottom:10px">
+          <div class="card-title">入力・編集する月を選択</div>
+          <button class="btn btn-sm btn-primary" onclick="startNewMonth()">
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v12M2 8h12"/></svg>
+            新しい月を追加
+          </button>
+        </div>
+        <div id="month-pills" style="display:flex;gap:6px;flex-wrap:wrap;min-height:28px">
+          <span style="font-size:12px;color:var(--ink3)">データがありません</span>
+        </div>
+      </div>
+
+      <!-- 編集中バナー -->
+      <div id="edit-mode-banner" class="edit-mode-banner" style="display:none">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="flex-shrink:0"><path d="M11 2l3 3-8 8H3v-3z"/></svg>
+        <span><strong id="edit-mode-label"></strong> のデータを編集中</span>
+        <button class="btn btn-sm" style="margin-left:auto" onclick="cancelEdit()">キャンセル</button>
+        <button class="btn btn-sm" style="background:var(--red-l);color:var(--red);border-color:var(--red)" onclick="deleteCurrentMonth()">この月を削除</button>
+      </div>
+
+      <div id="input-form-area" style="display:none">
+      <div class="alert alert-info" style="margin-bottom:14px">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="flex-shrink:0;margin-top:1px"><circle cx="8" cy="8" r="6"/><path d="M8 7v4M8 5h.01"/></svg>
+        サイドバーで評価対象者（上長）を選択し、データを入力してください。
+      </div>
+
+      <!-- Basic info -->
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">基本情報</div>
+        <div class="form-grid">
+          <div class="fg"><label>対象月</label><input type="month" id="inp-month"></div>
+          <div class="fg"><label>評価者（部下）の合計人数</label><input type="number" id="inp-staff" value="10" min="1"></div>
+        </div>
+      </div>
+
+      <!-- Scores -->
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-title" style="margin-bottom:0">評価スコア入力（1〜5点）</div>
+          <button class="btn btn-sm" onclick="addQuestion()">＋ 質問を追加</button>
+        </div>
+        <div style="font-size:11px;color:var(--ink3);margin-bottom:10px">質問文・カテゴリータグ・スコアをその月ごとに自由に設定できます。</div>
+        <div style="display:grid;grid-template-columns:1fr 140px 60px 28px;gap:4px;padding:4px 10px;font-size:10px;color:var(--ink4);font-weight:500;letter-spacing:.04em">
+          <span>質問文</span><span>カテゴリータグ</span><span style="text-align:center">スコア</span><span></span>
+        </div>
+        <div id="inp-score-grid"></div>
+      </div>
+
+      <!-- Comment categories -->
+      <div class="card">
+        <div class="card-title" style="margin-bottom:6px">カテゴリー別コメント入力</div>
+        <p style="font-size:11px;color:var(--ink3);margin-bottom:12px">各カテゴリーに複数の評価者（部下）のコメントを入力できます。「＋評価者を追加」で行を増やせます。</p>
+        <div class="ent-cat-nav" id="ent-cat-nav"></div>
+        <div id="ent-cat-panels"></div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+        <button class="btn btn-primary" onclick="submitData()">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v12M2 8h12"/></svg>
+          保存してAI分析
+        </button>
+        <div id="inp-status"></div>
+      </div>
+      </div><!-- /input-form-area -->
+    </div>
+
+  </div><!-- /content -->
+</main>
+</div><!-- /shell -->
+
+<script>
+/* =============================================
+   CONSTANTS
+============================================= */
+// 質問バンク: {id, label, tag}
+// tag: 'ops'|'support'|'system'|'comm'|'fair'|''
+const SCORE_TAGS = [
+  {id:'ops',    label:'業務運営'},
+  {id:'support',label:'支援・育成'},
+  {id:'system', label:'制度運用・改善'},
+  {id:'comm',   label:'コミュニケーション'},
+  {id:'fair',   label:'公平性・信頼性'},
+];
+
+// デフォルト質問バンク（月ごとに上書き可能）
+let defaultQuestions = [
+  {id:'q1',  label:'業務の進行状況を把握し、適切に管理している',         tag:'ops'},
+  {id:'q2',  label:'スケジュールや優先順位を明確にしている',             tag:'ops'},
+  {id:'q3',  label:'業務プロセスの改善に取り組んでいる',                 tag:'ops'},
+  {id:'q4',  label:'メンバーの業務状況を把握し、必要な支援を行っている', tag:'support'},
+  {id:'q5',  label:'意図や方針をわかりやすく伝えている',                 tag:'support'},
+  {id:'q6',  label:'成長につながる助言やフィードバックがある',           tag:'support'},
+  {id:'q6b', label:'チームやメンバーの育成に取り組んでいる',             tag:'support'},
+  {id:'q7',  label:'評価制度や運用ルールを適切に実施している',           tag:'system'},
+  {id:'q8',  label:'組織課題を抽出し、改善に向けて動いている',           tag:'system'},
+  {id:'q9',  label:'チーム内の人間関係を円滑にしている',                 tag:'comm'},
+  {id:'q10', label:'必要な情報を適切に共有している',                     tag:'comm'},
+  {id:'q11', label:'相談しやすい環境をつくっている',                     tag:'comm'},
+  {id:'q12', label:'メンバーに対して公平な対応をしている',               tag:'fair'},
+  {id:'q13', label:'判断や評価に納得感がある',                           tag:'fair'},
+  {id:'q14', label:'信頼される言動をしている',                           tag:'fair'},
+];
+
+// 現在の入力月の質問セット（編集中）
+let draftQuestions = [];
+
+// 後方互換: SCORE_ITEMS はもう使わない
+const SCORE_ITEMS = defaultQuestions.map(q=>q.label);
+
+const COMMENT_CATS = [
+  {id:'ops',   label:'業務運営'},
+  {id:'support',label:'支援・育成'},
+  {id:'system', label:'制度運用・改善'},
+  {id:'comm',  label:'コミュニケーション'},
+  {id:'fair',  label:'公平性・信頼性'},
+  {id:'overall',label:'総合コメント'},
+];
+
+const AV_CLASSES = ['av0','av1','av2','av3','av4','av5','av6','av7'];
+const CHART_COLORS = ['#1a5fd4','#167a40','#c41b1b','#a85f00','#5b21b6','#0e7490','#9a3412','#374151'];
+const CHART_BG    = ['rgba(26,95,212,.12)','rgba(22,122,64,.12)','rgba(196,27,27,.12)','rgba(168,95,0,.12)','rgba(91,33,182,.12)'];
+
+/* =============================================
+   DATA
+============================================= */
+// Comment entry: {id, reviewerName, text, summary, sentiment}
+// MonthRecord: {month, staff, scores:{item:score}, comments:{catId:[entries]}}
+// Person: {id, name, role, months:[MonthRecord]}
+
+function makeSampleComments(cats, positive=0.7){
+  const pos=['指示が的確で迷いません','情報共有が丁寧でわかりやすい','フィードバックが具体的','チームの雰囲気がよくなった','判断スピードが速く助かる','目標が明確でモチベーション上がる'];
+  const neg=['スケジュールが急に変わる','評価基準が不明確なことがある','もっと意見を聞いてほしい','業務量の調整をお願いしたい','成長機会をもっと作ってほしい'];
+  const result={};
+  cats.forEach(c=>{
+    result[c.id]=[
+      {id:uid(),reviewerName:'評価者A',text:Math.random()<positive?pos[Math.floor(Math.random()*pos.length)]:neg[Math.floor(Math.random()*neg.length)],summary:'',sentiment:''},
+      {id:uid(),reviewerName:'評価者B',text:Math.random()<positive?pos[Math.floor(Math.random()*pos.length)]:neg[Math.floor(Math.random()*neg.length)],summary:'',sentiment:''},
+    ];
+  });
+  return result;
+}
+
+function makeSampleMonths(baseScore=3.8, trend=0.12, positiveRate=0.6){
+  return ['2025-10','2025-11','2025-12','2026-01','2026-02','2026-03'].map((m,i)=>{
+    const sc={};
+    SCORE_ITEMS.forEach(it=>{sc[it]=Math.min(5,+(baseScore+trend*i+(Math.random()*.2-.1)).toFixed(1));});
+    return {month:m,staff:12+Math.floor(i/2),scores:sc,comments:makeSampleComments(COMMENT_CATS,positiveRate+.04*i)};
+  });
+}
+
+let people = []; // Firestoreから読み込む（サンプルデータなし）
+let currentId = '';
+let currentView = 'overview';
+let cmFilter = 'all';
+let cmCat = 'all';
+let ovMode = 'all';
+let lagVal = 0;
+let cmpSelected = [];
+
+let chartOv=null,chartOvCat=null,chartCmpRadar=null,chartCmpTrend=null,chartCmpPos=null,chartLag=null;
+let entCatCurrent = COMMENT_CATS[0].id;
+
+/* =============================================
+   UTILS
+============================================= */
+function uid(){return Math.random().toString(36).slice(2);}
+function P(id){return people.find(p=>p.id===id);}
+function CP(){return P(currentId);}
+function avCls(i){return AV_CLASSES[i%AV_CLASSES.length];}
+function cc(i){return CHART_COLORS[i%CHART_COLORS.length];}
+function cbg(i){return CHART_BG[i%CHART_BG.length];}
+function initials(n){return n.split(/\s+/).map(x=>x[0]).join('').slice(0,2);}
+function mLabel(m){return m.replace('-','年')+'月';}
+function avg(scores,questions,tag){
+  let qs=questions||defaultQuestions;
+  if(tag)qs=qs.filter(q=>q.tag===tag);
+  const ids=qs.map(q=>q.id);
+  const v=ids.map(id=>scores[id]||0).filter(x=>x>0);
+  return v.length?+(v.reduce((a,b)=>a+b,0)/v.length).toFixed(2):0;
+}
+function avgMonth(md,tag){return avg(md.scores,md.questions||defaultQuestions,tag);}
+function posRate(comments){
+  const all=Object.values(comments).flat();
+  if(!all.length)return 50;
+  return Math.round(all.filter(c=>c.sentiment==='plus').length/all.length*100);
+}
+function scClass(v){return v>=4?'hi':v>=3.5?'md':'lo';}
+function catLabel(id){return COMMENT_CATS.find(c=>c.id===id)?.label||id;}
+
+/* =============================================
+   SIDEBAR
+============================================= */
+function renderSB(){
+  document.getElementById('sb-people').innerHTML = people.map((p,i)=>`
+    <div class="person-row ${p.id===currentId?'active':''}" onclick="switchPerson('${p.id}')">
+      <div class="av ${avCls(i)}">${initials(p.name)}</div>
+      <div class="person-info">
+        <div class="person-name">${p.name}</div>
+        ${p.role?`<div class="person-role">${p.role}</div>`:''}
+      </div>
+      ${people.length>1?`<button class="del-btn" onclick="delPerson(event,'${p.id}')">×</button>`:''}
+    </div>
+  `).join('');
+  const sw=document.getElementById('person-sw');
+  sw.innerHTML=people.map(p=>`<option value="${p.id}"${p.id===currentId?' selected':''}>${p.name}</option>`).join('');
+}
+
+function switchPerson(id){
+  currentId=id;
+  renderSB();
+  refreshAll();
+}
+
+function openModal(){
+  document.getElementById('mn-name').value='';
+  document.getElementById('mn-role').value='';
+  document.getElementById('modal-add').classList.remove('hide');
+  setTimeout(()=>document.getElementById('mn-name').focus(),50);
+}
+function closeModal(){document.getElementById('modal-add').classList.add('hide');}
+function confirmAdd(){
+  const name=document.getElementById('mn-name').value.trim();
+  if(!name){alert('氏名を入力してください');return;}
+  const role=document.getElementById('mn-role').value.trim();
+  const np={id:'p'+uid(),name,role,months:[]};
+  people.push(np);
+  currentId=np.id;
+  closeModal();
+  renderSB();
+  refreshAll();
+}
+function delPerson(e,id){
+  e.stopPropagation();
+  const p=P(id);
+  if(!confirm(`「${p.name}」を削除しますか？`))return;
+  people=people.filter(x=>x.id!==id);
+  cmpSelected=cmpSelected.filter(x=>x!==id);
+  if(currentId===id)currentId=people[0]?.id||'';
+  renderSB();
+  refreshAll();
+}
+
+/* =============================================
+   VIEW ROUTING
+============================================= */
+function goView(v,btn){
+  currentView=v;
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('show'));
+  document.getElementById('view-'+v)?.classList.add('show');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  const titles={allboard:'全体ダッシュボード',overview:'個人概要',comments:'コメント分析',compare:'メンバー比較',insight:'インサイト分析',predict:'未来予測',input:'データ入力'};
+  document.getElementById('tb-title').textContent=titles[v]||v;
+  const p=CP();
+  document.getElementById('tb-sub').textContent=p?p.name+(p.role?' — '+p.role:''):'評価対象者を選択してください';
+  if(v==='insight')renderInsight();
+  if(v==='compare')renderCompare();
+  if(v==='allboard')renderAllBoard();
+}
+
+/* =============================================
+   OVERVIEW
+============================================= */
+function renderOvMetrics(){
+  const p=CP();
+  if(!p||!p.months.length){
+    document.getElementById('ov-metrics').innerHTML='<div class="empty">データがありません。「データ入力」から月次データを登録してください。</div>';
+    document.getElementById('ov-scores').innerHTML='';
+    return;
+  }
+  const lat=p.months[p.months.length-1];
+  const prev=p.months.length>1?p.months[p.months.length-2]:null;
+  const an=avgMonth(lat);
+  const ap=prev?avgMonth(prev):null;
+  const tr=ap!==null?+(an-ap).toFixed(2):0;
+  const pr=posRate(lat.comments);
+  const totC=p.months.reduce((a,d)=>a+Object.values(d.comments).flat().length,0);
+  document.getElementById('ov-metrics').innerHTML=`
+    <div class="metric ${an>=4?'up':an>=3.5?'md':'dn'}">
+      <div class="metric-label">全項目平均</div>
+      <div class="metric-num">${an.toFixed(1)}</div>
+      <div class="metric-sub">${tr>=0?'▲':'▼'}${Math.abs(tr).toFixed(2)} 前月比</div>
+    </div>
+    <div class="metric ${pr>=70?'up':pr>=50?'md':'dn'}">
+      <div class="metric-label">ポジティブ率</div>
+      <div class="metric-num">${pr}%</div>
+      <div class="metric-sub">${lat.month}時点</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">評価者数</div>
+      <div class="metric-num">${lat.staff}</div>
+      <div class="metric-sub">名（最新月）</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">累計コメント数</div>
+      <div class="metric-num">${totC}</div>
+      <div class="metric-sub">全期間合計</div>
+    </div>
+  `;
+  const latQs=lat.questions||defaultQuestions;
+  document.getElementById('ov-scores').innerHTML=latQs.map(q=>{
+    const v=lat.scores[q.id]||0;
+    const pv=prev&&prev.scores?prev.scores[q.id]:null;
+    const d=pv!=null?+(v-pv).toFixed(1):0;
+    return `<div class="score-item"><span class="score-name">${q.label}${tagBadge(q.tag)}</span><span class="score-val ${scClass(v)}">${v.toFixed(1)}<small style="font-size:9px;font-weight:400"> ${d>0?'↑':d<0?'↓':'→'}</small></span></div>`;
+  }).join('');
+}
+
+function setOvMode(m,btn){
+  ovMode=m;
+  document.querySelectorAll('#view-overview .seg').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const sel=document.getElementById('ov-item-sel');
+  sel.style.display=m==='pick'?'block':'none';
+  renderOvChart();
+}
+
+function renderOvChart(){
+  const p=CP();
+  if(!p||!p.months.length){if(chartOv){chartOv.destroy();chartOv=null;}return;}
+  const labels=p.months.map(d=>mLabel(d.month));
+  const pr=p.months.map(d=>posRate(d.comments));
+  let sc;
+  if(ovMode==='pick'){
+    const tag=document.getElementById('ov-item-sel').value||'';
+    sc=p.months.map(d=>+avgMonth(d,tag||undefined).toFixed(2));
+  } else {
+    sc=p.months.map(d=>+avgMonth(d).toFixed(2));
+  }
+  if(chartOv)chartOv.destroy();
+  chartOv=new Chart(document.getElementById('ov-chart'),{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'評価点',data:sc,borderColor:'#1a5fd4',backgroundColor:'rgba(26,95,212,.07)',tension:.35,yAxisID:'y',borderWidth:2,pointRadius:4,pointBackgroundColor:'#1a5fd4'},
+      {label:'ポジティブ率%',data:pr,borderColor:'#167a40',backgroundColor:'rgba(22,122,64,.05)',tension:.35,yAxisID:'y2',borderDash:[5,4],borderWidth:2,pointRadius:4,pointBackgroundColor:'#167a40'}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+(ctx.datasetIndex===0?ctx.parsed.y.toFixed(2):ctx.parsed.y+'%')}}},
+      scales:{y:{type:'linear',position:'left',min:1,max:5,ticks:{color:'#1a5fd4',font:{size:10}},title:{display:true,text:'評価点',color:'#1a5fd4',font:{size:10}}},
+              y2:{type:'linear',position:'right',min:0,max:100,ticks:{color:'#167a40',font:{size:10},callback:v=>v+'%'},title:{display:true,text:'ポジティブ率%',color:'#167a40',font:{size:10}},grid:{drawOnChartArea:false}}}}
+  });
+}
+
+function renderOvCatChart(){
+  const p=CP();
+  if(!p||!p.months.length){if(chartOvCat)chartOvCat.destroy();return;}
+  const lat=p.months[p.months.length-1];
+  const labels=COMMENT_CATS.map(c=>c.label);
+  const plusD=[],minusD=[],neutD=[];
+  COMMENT_CATS.forEach(c=>{
+    const ents=lat.comments[c.id]||[];
+    plusD.push(ents.filter(e=>e.sentiment==='plus').length);
+    minusD.push(ents.filter(e=>e.sentiment==='minus').length);
+    neutD.push(ents.filter(e=>e.sentiment==='neutral').length);
+  });
+  if(chartOvCat)chartOvCat.destroy();
+  chartOvCat=new Chart(document.getElementById('ov-cat-chart'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'プラス',data:plusD,backgroundColor:'rgba(22,122,64,.7)',borderColor:'#167a40',borderWidth:1},
+      {label:'マイナス',data:minusD,backgroundColor:'rgba(196,27,27,.7)',borderColor:'#c41b1b',borderWidth:1},
+      {label:'ニュートラル',data:neutD,backgroundColor:'rgba(168,95,0,.5)',borderColor:'#a85f00',borderWidth:1},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:10}}},
+      scales:{x:{ticks:{font:{size:10}}},y:{ticks:{font:{size:10},stepSize:1}}}}
+  });
+}
+
+/* =============================================
+   COMMENTS
+============================================= */
+function renderCmCatTabs(){
+  const tabs=document.getElementById('cm-cat-tabs');
+  tabs.innerHTML=`<button class="cat-tab ${cmCat==='all'?'on':''}" onclick="setCmCat('all')">すべて</button>`+
+    COMMENT_CATS.map(c=>`<button class="cat-tab ${cmCat===c.id?'on':''}" onclick="setCmCat('${c.id}')">${c.label}</button>`).join('');
+}
+function setCmCat(id){cmCat=id;renderComments();}
+
+function populateCmMonthSel(){
+  const p=CP();
+  const sel=document.getElementById('cm-month-sel');
+  const prev=sel.value;
+  sel.innerHTML='<option value="">全期間</option>'+(p?p.months.map(d=>`<option value="${d.month}"${d.month===prev?' selected':''}>${mLabel(d.month)}</option>`).join(''):'');
+}
+
+function setCF(f){
+  cmFilter=f;
+  ['all','plus','minus','neutral'].forEach(id=>{document.getElementById('cf-'+id)?.classList[id===f?'add':'remove']('on');});
+  renderComments();
+}
+
+function renderComments(){
+  renderCmCatTabs();
+  populateCmMonthSel();
+  const p=CP();
+  const monthFilter=document.getElementById('cm-month-sel').value;
+  const months=p?(monthFilter?p.months.filter(d=>d.month===monthFilter):p.months):[];
+  // collect all entries with metadata
+  const all=[];
+  months.forEach(d=>{
+    COMMENT_CATS.forEach(c=>{
+      if(cmCat!=='all'&&cmCat!==c.id)return;
+      (d.comments[c.id]||[]).forEach(e=>{
+        all.push({...e,catId:c.id,catLabel:c.label,month:d.month});
+      });
+    });
+  });
+  const filtered=cmFilter==='all'?all:all.filter(e=>e.sentiment===cmFilter);
+
+  // alerts
+  const alerts=document.getElementById('cm-alerts');
+  const pr=months.reduce((a,d)=>{const ents=Object.values(d.comments).flat();return a+ents.filter(e=>e.sentiment==='plus').length;},0);
+  const tot=months.reduce((a,d)=>a+Object.values(d.comments).flat().length,0);
+  const prate=tot?Math.round(pr/tot*100):0;
+  const minusCnt=all.filter(e=>e.sentiment==='minus').length;
+  alerts.innerHTML='';
+  if(prate>=80)alerts.innerHTML+=`<div class="alert alert-ok">ポジティブ率が${prate}%に達しています。組織の成果が最大化している状態です。</div>`;
+  if(minusCnt>5)alerts.innerHTML+=`<div class="alert alert-warn">マイナスコメントが${minusCnt}件あります。カテゴリーを絞り込んで課題を確認してください。</div>`;
+
+  const list=document.getElementById('cm-list');
+  if(!filtered.length){list.innerHTML='<div class="empty">該当するコメントはありません</div>';return;}
+  list.innerHTML=filtered.map(e=>`
+    <div class="cmt-card ${e.sentiment||'neutral'}" id="cmtcard-${e.id}">
+      <div class="cmt-hd">
+        <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">
+          <span class="badge b-cat">${e.catLabel}</span>
+          <span class="badge b-${e.sentiment||'neutral'}" id="cmtbadge-${e.id}">${e.sentiment==='plus'?'プラス':e.sentiment==='minus'?'マイナス':'ニュートラル'}</span>
+          ${e.reviewerName?`<span class="cmt-meta">${e.reviewerName}</span>`:''}
+        </div>
+        <div style="display:flex;align-items:center;gap:4px">
+          <span class="cmt-meta">${e.month||''}</span>
+          <div class="sentiment-pick" style="margin-top:0">
+            <button class="sp-btn sp-plus ${e.sentiment==='plus'?'on':''}" onclick="changeSavedSentiment('${e.personId||currentId}','${e.month}','${e.catId}','${e.id}','plus')" title="プラスに変更">👍</button>
+            <button class="sp-btn sp-minus ${e.sentiment==='minus'?'on':''}" onclick="changeSavedSentiment('${e.personId||currentId}','${e.month}','${e.catId}','${e.id}','minus')" title="マイナスに変更">👎</button>
+            <button class="sp-btn sp-neutral ${e.sentiment==='neutral'?'on':''}" onclick="changeSavedSentiment('${e.personId||currentId}','${e.month}','${e.catId}','${e.id}','neutral')" title="ニュートラルに変更">➖</button>
+          </div>
+        </div>
+      </div>
+      <div class="cmt-text">${e.text}</div>
+      ${e.summary?`<div class="cmt-summary">AI要約：${e.summary}</div>`:''}
+    </div>
+  `).join('');
+}
+
+/* =============================================
+   COMPARE
+============================================= */
+function renderCmpChecks(){
+  document.getElementById('cmp-checks').innerHTML=people.map((p,i)=>`
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;padding:5px 11px;border:0.5px solid ${cmpSelected.includes(p.id)?cc(i):'var(--bdr2)'};border-radius:var(--r);background:${cmpSelected.includes(p.id)?cbg(i):'transparent'};transition:all .13s">
+      <input type="checkbox" ${cmpSelected.includes(p.id)?'checked':''} onchange="toggleCmp('${p.id}',this)" style="accent-color:${cc(i)}">
+      <div class="av ${avCls(i)}" style="width:18px;height:18px;font-size:8px">${initials(p.name)}</div>
+      ${p.name}
+    </label>
+  `).join('');
+}
+
+function toggleCmp(id,chk){
+  if(chk.checked){if(!cmpSelected.includes(id))cmpSelected.push(id);}
+  else{cmpSelected=cmpSelected.filter(x=>x!==id);}
+  renderCompare();
+}
+
+function populateCmpMonthSel(){
+  const all=[...new Set(people.flatMap(p=>p.months.map(d=>d.month)))].sort();
+  const sel=document.getElementById('cmp-month-sel');
+  const prev=sel.value;
+  sel.innerHTML='<option value="">最新月</option>'+all.map(m=>`<option value="${m}"${m===prev?' selected':''}>${mLabel(m)}</option>`).join('');
+}
+
+function renderCompare(){
+  renderCmpChecks();
+  populateCmpMonthSel();
+  renderCmpRadar();
+  renderCmpTrend();
+  renderCmpPos();
+  renderCmpDetailCards();
+}
+
+function getMonthForPerson(p,targetMonth){
+  if(!targetMonth)return p.months[p.months.length-1];
+  return p.months.find(d=>d.month===targetMonth)||null;
+}
+
+function renderCmpRadar(){
+  const sel=cmpSelected.filter(id=>P(id));
+  const targetMonth=document.getElementById('cmp-month-sel').value;
+  // 5カテゴリーのタグ平均でレーダーを描く
+  const radarLabels=SCORE_TAGS.map(t=>t.label);
+  const datasets=sel.map(id=>{
+    const p=P(id);const i=people.findIndex(x=>x.id===id);
+    const md=getMonthForPerson(p,targetMonth);
+    const data=SCORE_TAGS.map(t=>md?+avgMonth(md,t.id).toFixed(2):0);
+    return {label:p.name,data,borderColor:cc(i),backgroundColor:cbg(i),borderWidth:2,pointRadius:4,pointBackgroundColor:cc(i)};
+  });
+  document.getElementById('cmp-radar-legend').innerHTML=sel.map(id=>{const i=people.findIndex(x=>x.id===id);return `<div class="ld"><div class="ldd" style="background:${cc(i)};height:2px"></div>${P(id).name}</div>`;}).join('');
+  if(chartCmpRadar)chartCmpRadar.destroy();
+  chartCmpRadar=new Chart(document.getElementById('cmp-radar'),{
+    type:'radar',
+    data:{labels:radarLabels,datasets},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.r.toFixed(2)}}},scales:{r:{min:0,max:5,ticks:{stepSize:1,font:{size:10}},pointLabels:{font:{size:11}}}}}
+  });
+}
+
+function renderCmpTrend(){
+  const sel=cmpSelected.filter(id=>P(id));
+  const allM=[...new Set(people.flatMap(p=>p.months.map(d=>d.month)))].sort();
+  const datasets=sel.map(id=>{
+    const p=P(id);const i=people.findIndex(x=>x.id===id);
+    const data=allM.map(m=>{const md=p.months.find(d=>d.month===m);return md?+avgMonth(md).toFixed(2):null;});
+    return {label:p.name,data,borderColor:cc(i),backgroundColor:cbg(i),tension:.35,borderWidth:2,pointRadius:3,pointBackgroundColor:cc(i),spanGaps:false};
+  });
+  document.getElementById('cmp-trend-legend').innerHTML=sel.map(id=>{const i=people.findIndex(x=>x.id===id);return `<div class="ld"><div class="ldd" style="background:${cc(i)};height:2px"></div>${P(id).name}</div>`;}).join('');
+  if(chartCmpTrend)chartCmpTrend.destroy();
+  chartCmpTrend=new Chart(document.getElementById('cmp-trend'),{
+    type:'line',
+    data:{labels:allM.map(m=>mLabel(m)),datasets},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y?.toFixed(2)}}},scales:{y:{min:1,max:5,ticks:{font:{size:10}}}}}
+  });
+}
+
+function renderCmpPos(){
+  const sel=cmpSelected.filter(id=>P(id));
+  const allM=[...new Set(people.flatMap(p=>p.months.map(d=>d.month)))].sort();
+  const datasets=sel.map(id=>{
+    const p=P(id);const i=people.findIndex(x=>x.id===id);
+    const data=allM.map(m=>{const md=p.months.find(d=>d.month===m);return md?posRate(md.comments):null;});
+    return {label:p.name,data,borderColor:cc(i),backgroundColor:cbg(i),tension:.35,borderWidth:2,pointRadius:3,pointBackgroundColor:cc(i),borderDash:[4,3],spanGaps:false};
+  });
+  document.getElementById('cmp-pos-legend').innerHTML=sel.map(id=>{const i=people.findIndex(x=>x.id===id);return `<div class="ld"><div class="ldd" style="background:${cc(i)};height:2px"></div>${P(id).name}</div>`;}).join('');
+  if(chartCmpPos)chartCmpPos.destroy();
+  chartCmpPos=new Chart(document.getElementById('cmp-pos'),{
+    type:'line',
+    data:{labels:allM.map(m=>mLabel(m)),datasets},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y+'%'}}},scales:{y:{min:0,max:100,ticks:{font:{size:10},callback:v=>v+'%'}}}}
+  });
+}
+
+function renderCmpDetailCards(){
+  const sel=cmpSelected.filter(id=>P(id));
+  const targetMonth=document.getElementById('cmp-month-sel').value;
+  let html='<div class="cmp-grid">';
+  sel.forEach(id=>{
+    const p=P(id);const i=people.findIndex(x=>x.id===id);
+    const md=getMonthForPerson(p,targetMonth);
+    if(!md){
+      html+=`<div class="cmp-card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><div class="av ${avCls(i)}">${initials(p.name)}</div><strong>${p.name}</strong></div><div class="empty" style="padding:16px">該当月のデータなし</div></div>`;
+      return;
+    }
+    const an=avgMonth(md);const pr=posRate(md.comments);
+    // questions ベースで強み・改善点を正しく計算
+    const qs=md.questions||defaultQuestions;
+    const qScored=qs.map(function(q){return {label:q.label,tag:q.tag,id:q.id,score:md.scores[q.id]||0};}).filter(function(q){return q.score>0;});
+    const topQ=qScored.length?qScored.slice().sort(function(a,b){return b.score-a.score;})[0]:null;
+    const lowQ=qScored.length?qScored.slice().sort(function(a,b){return a.score-b.score;})[0]:null;
+    // カテゴリー別強み・改善点
+    const tagScores=SCORE_TAGS.map(function(t){return {label:t.label,id:t.id,score:avgMonth(md,t.id)};}).filter(function(x){return x.score>0;});
+    const topTag=tagScores.length?tagScores.slice().sort(function(a,b){return b.score-a.score;})[0]:null;
+    const lowTag=tagScores.length?tagScores.slice().sort(function(a,b){return a.score-b.score;})[0]:null;
+    const allC=Object.values(md.comments).flat();
+    const minusCats=COMMENT_CATS.filter(c=>{const e=md.comments[c.id]||[];return e.filter(x=>x.sentiment==='minus').length>e.length/2;});
+    html+=`<div class="cmp-card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <div class="av ${avCls(i)}" style="width:32px;height:32px;font-size:12px">${initials(p.name)}</div>
+        <div>
+          <div style="font-size:13px;font-weight:600">${p.name}</div>
+          <div style="font-size:10px;color:var(--ink3)">${p.role||''}</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px">
+        <div style="background:var(--surf2);border-radius:var(--r);padding:8px 10px;text-align:center">
+          <div style="font-size:9px;color:var(--ink3);margin-bottom:2px">全項目平均</div>
+          <div style="font-size:20px;font-weight:600;font-family:'DM Mono',monospace;color:${an>=4?'var(--green)':an>=3.5?'var(--amber)':'var(--red)'}">${an.toFixed(1)}</div>
+        </div>
+        <div style="background:var(--surf2);border-radius:var(--r);padding:8px 10px;text-align:center">
+          <div style="font-size:9px;color:var(--ink3);margin-bottom:2px">ポジティブ率</div>
+          <div style="font-size:20px;font-weight:600;font-family:'DM Mono',monospace;color:${pr>=70?'var(--green)':pr>=50?'var(--amber)':'var(--red)'}">${pr}%</div>
+        </div>
+      </div>
+      <div style="font-size:11px;border-top:0.5px solid var(--bdr);padding-top:8px">
+        ${topTag?`<div style="display:flex;justify-content:space-between;padding:3px 0;gap:4px"><span style="color:var(--ink3);flex-shrink:0">💪 強み</span><span style="color:var(--green);font-weight:500;text-align:right">${topTag.label} ${topTag.score.toFixed(2)}</span></div>`:''}
+        ${lowTag?`<div style="display:flex;justify-content:space-between;padding:3px 0;gap:4px;border-bottom:0.5px solid var(--bdr)"><span style="color:var(--ink3);flex-shrink:0">📌 改善点</span><span style="color:var(--red);font-weight:500;text-align:right">${lowTag.label} ${lowTag.score.toFixed(2)}</span></div>`:''}
+        ${topQ?`<div style="display:flex;justify-content:space-between;padding:3px 0;gap:4px"><span style="color:var(--ink3);flex-shrink:0;font-size:10px">最高質問</span><span style="color:var(--green);text-align:right;font-size:10px">${topQ.label.slice(0,18)}… ${topQ.score.toFixed(1)}</span></div>`:''}
+        ${lowQ?`<div style="display:flex;justify-content:space-between;padding:3px 0;gap:4px"><span style="color:var(--ink3);flex-shrink:0;font-size:10px">最低質問</span><span style="color:var(--red);text-align:right;font-size:10px">${lowQ.label.slice(0,18)}… ${lowQ.score.toFixed(1)}</span></div>`:''}
+        ${minusCats.length?`<div style="margin-top:4px;font-size:10px;color:var(--red)">👎 ${minusCats.map(c=>c.label).join('・')}</div>`:''}
+        <div style="margin-top:4px;font-size:10px;color:var(--ink3)">コメント: ${allC.filter(e=>e.text).length}件</div>
+      </div>
+    </div>`;
+  });
+  html+='</div>';
+  document.getElementById('cmp-detail-cards').innerHTML=html;
+}
+
+/* =============================================
+   TIMLAG
+============================================= */
+function setLag(v){
+  lagVal=parseInt(v);
+  document.getElementById('lag-sl').value=v;
+  document.getElementById('lag-disp').textContent=v;
+  renderLagChart();
+}
+function renderLagChart(){
+  const p=CP();
+  if(!p||!p.months.length){if(chartLag)chartLag.destroy();return;}
+  const tag=document.getElementById('lag-item-sel').value||'';
+  const tagLabel=tag?(SCORE_TAGS.find(x=>x.id===tag)||{label:'全体平均'}).label:'全体平均';
+  const FORECAST_MONTHS=3; // 未来予測する月数
+
+  // 実績データ
+  const actualSc=p.months.map(d=>+avgMonth(d,tag||undefined).toFixed(2));
+  const actualPr=p.months.map(d=>posRate(d.comments));
+  const actualLabels=p.months.map(d=>mLabel(d.month));
+  const n=actualSc.length;
+
+  // 線形回帰で傾きを計算
+  function linReg(vals){
+    const m=vals.length;
+    if(m<2)return{slope:0,intercept:vals[0]||0};
+    const sx=m*(m-1)/2;
+    const sx2=m*(m-1)*(2*m-1)/6;
+    const sy=vals.reduce((a,b)=>a+b,0);
+    const sxy=vals.reduce((s,v,i)=>s+i*v,0);
+    const slope=(m*sxy-sx*sy)/(m*sx2-sx*sx);
+    const intercept=(sy-slope*sx)/m;
+    return{slope,intercept};
+  }
+
+  const regSc=linReg(actualSc);
+  const regPr=linReg(actualPr);
+
+  // 未来ラベル・予測値生成
+  const futureLabels=[];
+  const futureSc=[];
+  const futurePr=[];
+  const lastMonth=p.months[n-1].month;
+  let [fy,fm]=[parseInt(lastMonth.split('-')[0]),parseInt(lastMonth.split('-')[1])];
+  for(let i=1;i<=FORECAST_MONTHS;i++){
+    fm++;if(fm>12){fm=1;fy++;}
+    futureLabels.push(fy+'年'+fm+'月（予測）');
+    const predSc=Math.min(5,Math.max(1,+(regSc.intercept+regSc.slope*(n-1+i)).toFixed(2)));
+    const predPr=Math.min(100,Math.max(0,Math.round(regPr.intercept+regPr.slope*(n-1+i))));
+    futureSc.push(predSc);
+    futurePr.push(predPr);
+  }
+
+  const allLabels=[...actualLabels,...futureLabels];
+  // 実績と予測をつなぐ：実績の最後の点 + 予測
+  const scActual=[...actualSc,...Array(FORECAST_MONTHS).fill(null)];
+  const scForecast=[...Array(n-1).fill(null),actualSc[n-1],...futureSc];
+  const prActual=[...actualPr,...Array(FORECAST_MONTHS).fill(null)];
+  const prForecast=[...Array(n-1).fill(null),actualPr[n-1],...futurePr];
+
+  if(chartLag)chartLag.destroy();
+  chartLag=new Chart(document.getElementById('lag-chart'),{
+    type:'line',
+    data:{labels:allLabels,datasets:[
+      // 実績スコア（青実線）
+      {label:tagLabel+'（実績）',data:scActual,borderColor:'#1a5fd4',backgroundColor:'rgba(26,95,212,.07)',tension:.35,yAxisID:'y',borderWidth:2,pointRadius:4,pointBackgroundColor:'#1a5fd4',spanGaps:false},
+      // 予測スコア（青破線）
+      {label:tagLabel+'（予測）',data:scForecast,borderColor:'#1a5fd4',backgroundColor:'rgba(26,95,212,.04)',tension:.35,yAxisID:'y',borderWidth:2,pointRadius:4,pointBackgroundColor:'#1a5fd4',borderDash:[6,4],spanGaps:false},
+      // 実績ポジティブ率（緑実線）
+      {label:'コメント満足度（実績）',data:prActual,borderColor:'#167a40',backgroundColor:'rgba(22,122,64,.05)',tension:.35,yAxisID:'y2',borderWidth:2,pointRadius:4,pointBackgroundColor:'#167a40',spanGaps:false},
+      // 予測ポジティブ率（緑破線）
+      {label:'コメント満足度（予測）',data:prForecast,borderColor:'#167a40',backgroundColor:'rgba(22,122,64,.03)',tension:.35,yAxisID:'y2',borderWidth:2,pointRadius:4,pointBackgroundColor:'#167a40',borderDash:[6,4],spanGaps:false},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>{
+          const v=ctx.parsed.y;if(v==null)return null;
+          return ctx.dataset.label+': '+(ctx.datasetIndex<=1?v.toFixed(2):v+'%');
+        }}},
+        annotation:{annotations:{
+          forecastLine:{type:'line',xMin:n-0.5,xMax:n-0.5,borderColor:'rgba(0,0,0,.2)',borderWidth:1,borderDash:[4,4],
+            label:{content:'予測→',display:true,position:'start',font:{size:10},color:'var(--ink3)'}}
+        }}
+      },
+      scales:{
+        y:{type:'linear',position:'left',min:1,max:5,ticks:{color:'#1a5fd4',font:{size:10}},title:{display:true,text:'評価点',color:'#1a5fd4',font:{size:10}}},
+        y2:{type:'linear',position:'right',min:0,max:100,ticks:{color:'#167a40',font:{size:10},callback:v=>v+'%'},title:{display:true,text:'コメント満足度%',color:'#167a40',font:{size:10}},grid:{drawOnChartArea:false}}
+      }
+    }
+  });
+
+  // インサイト文
+  const scSlope=regSc.slope;
+  const prSlope=regPr.slope;
+  const nextSc=futureSc[0],nextPr=futurePr[0];
+  const warn=n<4?'<br><small style="color:var(--amber)">⚠ データが'+n+'ヶ月分のため予測精度は限定的です。月次データが増えるほど精度が上がります。</small>':'';
+  document.getElementById('lag-insight').innerHTML=
+    '<strong>現在の傾向：</strong>'
+    +(scSlope>0.05?'評価スコアは上昇傾向':scSlope<-0.05?'評価スコアは下落傾向':'評価スコアはほぼ横ばい')+'（月'+( scSlope>=0?'+':'')+scSlope.toFixed(2)+'点）、'
+    +(prSlope>1?'コメント満足度は上昇傾向':prSlope<-1?'コメント満足度は下落傾向':'コメント満足度はほぼ横ばい')+'（月'+(prSlope>=0?'+':'')+prSlope.toFixed(1)+'%）。'
+    +'<br><strong>来月の予測：</strong>評価スコア <strong>'+nextSc.toFixed(1)+'点</strong>、コメント満足度 <strong>'+nextPr+'%</strong>。'
+    +'<br><small style="color:var(--ink3)">破線が予測ライン。線形トレンドをもとに算出しています。</small>'+warn;
+}
+
+
+/* =============================================
+   ALL BOARD — 全評価者ダッシュボード
+============================================= */
+let chartAbCat=null, chartAbTrend=null;
+
+function renderAllBoard(){
+  if(!people.length){
+    ['ab-metrics','ab-ranking','ab-alerts','ab-rising','ab-falling','ab-worst'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el)el.innerHTML='<div class="empty">評価対象者を追加してください</div>';
+    });
+    return;
+  }
+
+  // 全員の最新月データを収集
+  const latestData=people.map((p,i)=>{
+    if(!p.months.length)return null;
+    const lat=p.months[p.months.length-1];
+    const prev=p.months.length>1?p.months[p.months.length-2]:null;
+    const score=avgMonth(lat);
+    const prevScore=prev?avgMonth(prev):null;
+    const diff=prevScore!==null?+(score-prevScore).toFixed(2):null;
+    return {person:p,idx:i,lat,prev,score,prevScore,diff,posRate:posRate(lat.comments)};
+  }).filter(Boolean);
+
+  if(!latestData.length)return;
+
+  // --- メトリクス ---
+  const scores=latestData.map(d=>d.score);
+  const allAvg=+(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(2);
+  const above4=latestData.filter(d=>d.score>=4).length;
+  const below4=latestData.filter(d=>d.score<4).length;
+  const allPosRate=Math.round(latestData.reduce((a,d)=>a+d.posRate,0)/latestData.length);
+
+  document.getElementById('ab-metrics').innerHTML=`
+    <div class="metric ${allAvg>=4?'up':allAvg>=3.5?'md':'dn'}">
+      <div class="metric-label">全員 平均スコア</div>
+      <div class="metric-num">${allAvg.toFixed(1)}</div>
+      <div class="metric-sub">${latestData.length}名の平均</div>
+    </div>
+    <div class="metric up">
+      <div class="metric-label">4点以上（良好）</div>
+      <div class="metric-num">${above4}</div>
+      <div class="metric-sub">名</div>
+    </div>
+    <div class="metric ${below4?'dn':''}">
+      <div class="metric-label">4点未満（要注目）</div>
+      <div class="metric-num">${below4}</div>
+      <div class="metric-sub">名</div>
+    </div>
+    <div class="metric ${allPosRate>=70?'up':allPosRate>=50?'md':'dn'}">
+      <div class="metric-label">全体コメント満足度</div>
+      <div class="metric-num">${allPosRate}%</div>
+      <div class="metric-sub">全員の平均</div>
+    </div>`;
+
+  // --- ランキング ---
+  const ranked=[...latestData].sort((a,b)=>b.score-a.score);
+  document.getElementById('ab-ranking').innerHTML=ranked.map((d,rank)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--bdr);${rank===ranked.length-1?'border:none':''}">
+      <div style="font-size:11px;font-weight:600;color:${rank===0?'var(--amber)':rank===1?'var(--ink3)':rank===2?'var(--amber)':'var(--ink4)'};min-width:18px">${rank===0?'🥇':rank===1?'🥈':rank===2?'🥉':rank+1+'.'}</div>
+      <div class="av ${avCls(d.idx)}" style="width:22px;height:22px;font-size:9px">${initials(d.person.name)}</div>
+      <div style="flex:1;font-size:12px;font-weight:500">${d.person.name}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:${d.score>=4?'var(--green)':d.score>=3.5?'var(--amber)':'var(--red)'}">${d.score.toFixed(1)}</div>
+      ${d.diff!==null?`<div style="font-size:10px;color:${d.diff>0?'var(--green)':d.diff<0?'var(--red)':'var(--ink3)'};min-width:36px;text-align:right">${d.diff>0?'▲':'▼'}${Math.abs(d.diff).toFixed(1)}</div>`:'<div style="min-width:36px"></div>'}
+    </div>`).join('');
+
+  // --- 4点未満アラート（カテゴリー別） ---
+  const alertRows=[];
+  latestData.forEach(d=>{
+    SCORE_TAGS.forEach(t=>{
+      const s=avgMonth(d.lat,t.id);
+      if(s<4&&s>0) alertRows.push({person:d.person,idx:d.idx,tag:t,score:s});
+    });
+  });
+  alertRows.sort((a,b)=>a.score-b.score);
+  document.getElementById('ab-alerts').innerHTML=alertRows.length
+    ?alertRows.slice(0,8).map(r=>`
+      <div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:0.5px solid var(--bdr)">
+        <div class="av ${avCls(r.idx)}" style="width:20px;height:20px;font-size:8px">${initials(r.person.name)}</div>
+        <div style="flex:1;font-size:11px">${r.person.name} <span class="tag-badge tag-${r.tag.id}" style="font-size:9px">${r.tag.label}</span></div>
+        <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:var(--red)">${r.score.toFixed(1)}</div>
+      </div>`).join('')
+    :'<div style="font-size:12px;color:var(--green);padding:8px 0">✅ 全カテゴリー4点以上です</div>';
+
+  // --- 上昇率トップ ---
+  const withDiff=latestData.filter(d=>d.diff!==null);
+  const rising=[...withDiff].sort((a,b)=>b.diff-a.diff).slice(0,5);
+  document.getElementById('ab-rising').innerHTML=rising.length
+    ?rising.map(d=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--bdr)">
+        <div class="av ${avCls(d.idx)}" style="width:22px;height:22px;font-size:9px">${initials(d.person.name)}</div>
+        <div style="flex:1;font-size:12px;font-weight:500">${d.person.name}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:${d.diff>0?'var(--green)':d.diff<0?'var(--red)':'var(--ink3)'}">${d.diff>0?'▲':'▼'}${Math.abs(d.diff).toFixed(2)}</div>
+      </div>`).join('')
+    :'<div class="empty" style="padding:12px">前月データがありません</div>';
+
+  // --- 下落率ワースト ---
+  const falling=[...withDiff].sort((a,b)=>a.diff-b.diff).slice(0,5);
+  document.getElementById('ab-falling').innerHTML=falling.length&&falling[0].diff<0
+    ?falling.filter(d=>d.diff<0).map(d=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--bdr)">
+        <div class="av ${avCls(d.idx)}" style="width:22px;height:22px;font-size:9px">${initials(d.person.name)}</div>
+        <div style="flex:1;font-size:12px;font-weight:500">${d.person.name}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--red)">▼${Math.abs(d.diff).toFixed(2)}</div>
+      </div>`).join('')
+    :'<div style="font-size:12px;color:var(--green);padding:8px 0">✅ 下落者はいません</div>';
+
+  // --- 評価スコア ワースト3 ---
+  const worst=[...latestData].sort((a,b)=>a.score-b.score).slice(0,3);
+  const worstEl=document.getElementById('ab-worst');
+  if(worstEl){
+    worstEl.innerHTML=worst.map((d,rank)=>{
+      const medal=['🔴','🟠','🟡'][rank];
+      // カテゴリー別で最低スコアのタグを特定
+      const lowestTag=SCORE_TAGS.reduce((low,t)=>{
+        const s=avgMonth(d.lat,t.id);
+        return (!low||s<low.score)?{tag:t,score:s}:low;
+      },null);
+      return `<div style="padding:8px 0;border-bottom:0.5px solid var(--bdr)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="font-size:14px">${medal}</span>
+          <div class="av ${avCls(d.idx)}" style="width:22px;height:22px;font-size:9px">${initials(d.person.name)}</div>
+          <div style="flex:1;font-size:12px;font-weight:500">${d.person.name}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:14px;font-weight:700;color:var(--red)">${d.score.toFixed(1)}</div>
+        </div>
+        ${lowestTag?`<div style="font-size:10px;color:var(--ink3);padding-left:44px">最低カテゴリ: <span class="tag-badge tag-${lowestTag.tag.id}" style="font-size:9px">${lowestTag.tag.label}</span> ${lowestTag.score.toFixed(1)}点</div>`:''}
+      </div>`;
+    }).join('');
+  }
+
+  // --- カテゴリー別 全員比較グラフ（グループ棒グラフ）---
+  const tagLabels=SCORE_TAGS.map(t=>t.label);
+  const datasets=latestData.map(d=>({
+    label:d.person.name,
+    data:SCORE_TAGS.map(t=>+avgMonth(d.lat,t.id).toFixed(2)),
+    backgroundColor:cc(d.idx)+'cc',
+    borderColor:cc(d.idx),
+    borderWidth:1,
+    borderRadius:3,
+  }));
+  document.getElementById('ab-cat-legend').innerHTML=latestData.map(d=>`<div class="ld"><div class="ldd" style="background:${cc(d.idx)}"></div>${d.person.name}</div>`).join('');
+  if(chartAbCat)chartAbCat.destroy();
+  chartAbCat=new Chart(document.getElementById('ab-cat-chart'),{
+    type:'bar',
+    data:{labels:tagLabels,datasets},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y.toFixed(2)}}},
+      scales:{y:{min:0,max:5,ticks:{font:{size:10}}},x:{ticks:{font:{size:11}}}}}
+  });
+
+  // --- 全員 平均スコア推移（折れ線）---
+  const allMonths=[...new Set(people.flatMap(p=>p.months.map(d=>d.month)))].sort();
+  const trendDatasets=latestData.map(d=>({
+    label:d.person.name,
+    data:allMonths.map(m=>{const md=d.person.months.find(x=>x.month===m);return md?+avgMonth(md).toFixed(2):null;}),
+    borderColor:cc(d.idx),backgroundColor:cbg(d.idx),tension:.35,borderWidth:2,pointRadius:3,
+    pointBackgroundColor:cc(d.idx),spanGaps:false,
+  }));
+  document.getElementById('ab-trend-legend').innerHTML=latestData.map(d=>`<div class="ld"><div class="ldd" style="background:${cc(d.idx)}"></div>${d.person.name}</div>`).join('');
+  if(chartAbTrend)chartAbTrend.destroy();
+  chartAbTrend=new Chart(document.getElementById('ab-trend-chart'),{
+    type:'line',
+    data:{labels:allMonths.map(m=>mLabel(m)),datasets:trendDatasets},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y?.toFixed(2)}}},
+      scales:{y:{min:1,max:5,ticks:{font:{size:10}}},x:{ticks:{font:{size:10}}}}}
+  });
+}
+
+/* =============================================
+   PREDICT
+============================================= */
+function runPred(){
+  const p=CP();
+  const box=document.getElementById('pred-result');
+  if(!p){box.innerHTML='<div class="alert alert-warn" style="margin-top:12px">サイドバーから評価対象者を選択してください</div>';return;}
+  const tag=document.getElementById('pred-item').value;
+  const tagLabel=tag?(SCORE_TAGS.find(x=>x.id===tag)||{label:'全体平均'}).label:'全体平均';
+  const ts=parseFloat(document.getElementById('pred-score').value)||4.0;
+  const staff=parseInt(document.getElementById('pred-staff').value)||10;
+  const months=p.months||[];
+  if(!months.length){box.innerHTML='<div class="alert alert-warn" style="margin-top:12px">データがありません。まずデータ入力タブからデータを登録してください。</div>';return;}
+  const achMonths=months.filter(d=>avgMonth(d,tag||undefined)>=ts);
+  let maxPR=0,maxPRMonth='';
+  months.forEach(d=>{const r=posRate(d.comments);if(r>maxPR){maxPR=r;maxPRMonth=d.month;}});
+  let lagResult='';
+  if(achMonths.length&&maxPRMonth){
+    const achIdx=months.findIndex(d=>d.month===achMonths[0].month);
+    const maxIdx=months.findIndex(d=>d.month===maxPRMonth);
+    const lagM=maxIdx-achIdx;
+    if(lagM>0) lagResult='過去データより、条件達成から <strong>'+lagM+'ヶ月後</strong> にコメント満足度が最高（'+maxPR+'%）に達しています。';
+    else if(lagM===0) lagResult='条件達成と同月にコメント満足度が最高（'+maxPR+'%）に達しています。';
+    else lagResult='コメント満足度の最高値はスコア条件達成より前に記録されています。データが増えると精度が上がります。';
+  } else {
+    const bl=staff>=15?3:staff>=12?3:4;
+    const ml=staff>=15?4:6;
+    lagResult='スタッフ数（'+staff+'名）をもとに推定：条件達成から <strong>'+bl+'〜'+ml+'ヶ月後</strong> に満足度が最大になる傾向があります。（データが増えると実績ベースに切り替わります）';
+  }
+  const latestMd=months[months.length-1];
+  const currentScore=avgMonth(latestMd,tag||undefined);
+  const gap=+(ts-currentScore).toFixed(2);
+  box.innerHTML='<div class="pred-box">'
+    +'<div style="font-size:11px;color:var(--purple);font-weight:500;margin-bottom:6px">予測結果 — 「'+tagLabel+'」</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">'
+    +'<div style="background:rgba(255,255,255,.4);border-radius:var(--r);padding:8px 10px;text-align:center"><div style="font-size:9px;color:var(--purple);margin-bottom:2px">現在スコア</div><div style="font-size:20px;font-weight:700;font-family:\'DM Mono\',monospace;color:var(--purple)">'+currentScore.toFixed(1)+'</div></div>'
+    +'<div style="background:rgba(255,255,255,.4);border-radius:var(--r);padding:8px 10px;text-align:center"><div style="font-size:9px;color:var(--purple);margin-bottom:2px">目標スコア</div><div style="font-size:20px;font-weight:700;font-family:\'DM Mono\',monospace;color:var(--purple)">'+ts.toFixed(1)+'</div></div>'
+    +'<div style="background:rgba(255,255,255,.4);border-radius:var(--r);padding:8px 10px;text-align:center"><div style="font-size:9px;color:var(--purple);margin-bottom:2px">達成状況</div><div style="font-size:13px;font-weight:700;color:'+(gap<=0?'var(--green)':'var(--red)')+';">'+(gap<=0?'✅ 達成済み':'あと '+gap.toFixed(1)+'点')+'</div></div>'
+    +'</div>'
+    +'<div class="pred-detail">'
+    +(achMonths.length?'✅ <strong>'+achMonths[0].month+'</strong> に初めて条件達成（'+avgMonth(achMonths[0],tag||undefined).toFixed(1)+'点）<br>':'⚠ まだ条件未達成<br>')
+    +lagResult+'<br><br>'
+    +'<span style="color:var(--ink3)">📊 過去最高満足度：'+maxPR+'%（'+maxPRMonth+'）　データ月数：'+months.length+'ヶ月</span>'
+    +'</div></div>';
+}
+
+function renderLawMatrix(){
+  const p=CP(),months=p?p.months:[];
+  if(!months.length){
+    document.getElementById('law-matrix').innerHTML='<div class="empty">データがありません</div>';
+    return;
+  }
+  const latest=months[months.length-1];
+  let maxPR=0,maxPRIdx=0;
+  months.forEach((d,i)=>{const r=posRate(d.comments);if(r>maxPR){maxPR=r;maxPRIdx=i;}});
+  const rows=SCORE_TAGS.map(t=>{
+    const current=avgMonth(latest,t.id);
+    const above4=months.filter(d=>avgMonth(d,t.id)>=4.0);
+    let cls='lo',lagText='4点未達成',status='⚠';
+    if(above4.length>0){
+      const achIdx=months.findIndex(d=>d.month===above4[0].month);
+      const lag=maxPRIdx-achIdx;
+      lagText=lag>0?lag+'ヶ月後に満足度最大':lag===0?'達成月に満足度最大':'先行して満足度最大';
+      cls='hi'; status='✅';
+    }
+    const trend=months.length>=2?+(avgMonth(latest,t.id)-avgMonth(months[months.length-2],t.id)).toFixed(2):null;
+    const trendStr=trend!==null?(trend>0?'▲'+trend.toFixed(2):trend<0?'▼'+Math.abs(trend).toFixed(2):'→ 横ばい'):'';
+    return '<div style="background:var(--surf2);border:.5px solid var(--bdr);border-radius:var(--r);padding:10px 13px;margin-bottom:6px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'
+      +'<span style="font-size:12px;font-weight:500;color:var(--ink)">'+status+' '+t.label+'</span>'
+      +'<span class="score-val '+cls+'" style="font-size:14px">'+current.toFixed(1)+'点</span>'
+      +'</div>'
+      +'<div style="display:flex;justify-content:space-between;align-items:center">'
+      +'<span style="font-size:10px;color:var(--ink3)">'+lagText+'</span>'
+      +(trendStr?'<span style="font-size:10px;font-family:DM Mono,monospace;color:'+(trend>0?'var(--green)':trend<0?'var(--red)':'var(--ink3)')+'">前月比 '+trendStr+'</span>':'')
+      +'</div>'
+      +'</div>';
+  });
+  document.getElementById('law-matrix').innerHTML=rows.join('');
+}
+
+
+function tagBadge(tag){
+  const t=SCORE_TAGS.find(x=>x.id===tag);
+  return `<span class="tag-badge tag-${tag||'none'}">${t?t.label:'未分類'}</span>`;
+}
+
+function initDraftQuestions(){
+  // 現在入力月に既存データがあればそれを、なければdefaultQuestionsをコピー
+  const p=CP();
+  const month=document.getElementById('inp-month')?.value;
+  const md=p&&month?p.months.find(d=>d.month===month):null;
+  if(md&&md.questions&&md.questions.length){
+    draftQuestions=md.questions.map(q=>({...q,score:md.scores[q.id]||3.5}));
+  } else {
+    draftQuestions=defaultQuestions.map(q=>({...q,score:3.5}));
+  }
+}
+
+function buildScoreGrid(){
+  renderScoreGrid();
+}
+
+function renderScoreGrid(){
+  const tagOptions=SCORE_TAGS.map(t=>`<option value="${t.id}">${t.label}</option>`).join('');
+  document.getElementById('inp-score-grid').innerHTML=draftQuestions.map((q,i)=>`
+    <div class="q-editor-row" id="qrow-${q.id}">
+      <input class="q-label-in" value="${q.label.replace(/"/g,'&quot;')}" placeholder="質問文を入力"
+        oninput="updateDraftQ('${q.id}','label',this.value)">
+      <select class="q-tag-sel" onchange="updateDraftQ('${q.id}','tag',this.value)">
+        <option value="">未分類</option>
+        ${SCORE_TAGS.map(t=>`<option value="${t.id}"${q.tag===t.id?' selected':''}>${t.label}</option>`).join('')}
+      </select>
+      <input class="q-score-in" type="number" min="1" max="5" step="0.1"
+        value="${q.score||3.5}" oninput="updateDraftQ('${q.id}','score',this.value)">
+      <button class="q-del-btn" onclick="deleteQuestion('${q.id}')" title="削除">×</button>
+    </div>
+  `).join('')||'<div style="font-size:12px;color:var(--ink3);padding:8px">質問がありません。「＋ 質問を追加」から追加してください。</div>';
+}
+
+function updateDraftQ(id,field,val){
+  const q=draftQuestions.find(x=>x.id===id);
+  if(!q)return;
+  q[field]=field==='score'?parseFloat(val)||3.5:val;
+}
+
+function addQuestion(){
+  const newQ={id:'q'+uid(),label:'',tag:'',score:3.5};
+  draftQuestions.push(newQ);
+  renderScoreGrid();
+  // フォーカスを新しい行の入力欄へ
+  setTimeout(()=>{
+    const el=document.querySelector(`#qrow-${newQ.id} .q-label-in`);
+    if(el)el.focus();
+  },50);
+}
+
+function deleteQuestion(id){
+  draftQuestions=draftQuestions.filter(q=>q.id!==id);
+  renderScoreGrid();
+}
+
+/* =============================================
+   DATA INPUT — COMMENT CATEGORIES
+============================================= */
+function buildCatNav(){
+  const nav=document.getElementById('ent-cat-nav');
+  nav.innerHTML=COMMENT_CATS.map(c=>`<button class="ent-cat-tab ${c.id===entCatCurrent?'on':''}" onclick="switchEntCat('${c.id}')">${c.label}</button>`).join('');
+}
+
+function switchEntCat(id){
+  entCatCurrent=id;
+  buildCatNav();
+  renderEntCatPanel(id);
+}
+
+function renderEntCatPanel(catId){
+  const cat=COMMENT_CATS.find(c=>c.id===catId);
+  if(!window._draftComments)window._draftComments={};
+  if(!window._draftComments[catId]){
+    window._draftComments[catId]=[{id:uid(),name:'',text:''}];
+  }
+  const panel=document.getElementById('ent-cat-panels');
+  panel.innerHTML=`
+    <div class="comment-input-group">
+      <div class="cig-header">
+        <span class="cig-label">${cat.label}</span>
+        <button class="add-reviewer-btn" onclick="addReviewerRow('${catId}')">＋ 評価者を追加</button>
+      </div>
+      <div class="cig-reviewers" id="reviewers-${catId}">
+        ${renderReviewerRows(catId)}
+      </div>
+    </div>
+  `;
+}
+
+function spBtn(catId,rowId,val,label,cls){
+  const r=window._draftComments[catId]?.find(x=>x.id===rowId);
+  const on=(r&&r.sentiment===val)?'on':'';
+  return `<button class="sp-btn sp-${val} ${on}" onclick="setSentiment('${catId}','${rowId}','${val}')">${label}</button>`;
+}
+
+function renderReviewerRows(catId){
+  return (window._draftComments[catId]||[]).map((r,i)=>{
+    const rowCls=r.sentiment==='plus'?'row-plus':r.sentiment==='minus'?'row-minus':r.sentiment?'row-neutral':'';
+    return `
+    <div class="reviewer-row ${rowCls}" id="rrow-${r.id}">
+      <div class="row-main">
+        <div class="row-top">
+          <input class="reviewer-name-in" placeholder="評価者名（任意）" value="${r.name||''}" oninput="updateDraft('${catId}','${r.id}','name',this.value)" style="width:100px;flex-shrink:0">
+          <div class="sentiment-pick">
+            ${spBtn(catId,r.id,'plus','👍 プラス','plus')}
+            ${spBtn(catId,r.id,'minus','👎 マイナス','minus')}
+            ${spBtn(catId,r.id,'neutral','➖ ニュートラル','neutral')}
+          </div>
+        </div>
+        <div class="row-bottom">
+          <textarea class="reviewer-comment-in" placeholder="コメントを入力..." oninput="updateDraft('${catId}','${r.id}','text',this.value)" style="flex:1">${r.text||''}</textarea>
+        </div>
+      </div>
+      ${i>0?`<button class="del-reviewer" onclick="delReviewerRow('${catId}','${r.id}')">×</button>`:'<div style="width:20px"></div>'}
+    </div>`;
+  }).join('');
+}
+
+function setSentiment(catId,rowId,val){
+  const r=window._draftComments[catId]?.find(x=>x.id===rowId);
+  if(!r)return;
+  // toggle off if same
+  r.sentiment=r.sentiment===val?'':val;
+  document.getElementById('reviewers-'+catId).innerHTML=renderReviewerRows(catId);
+}
+
+function updateDraft(catId,rowId,field,val){
+  const r=window._draftComments[catId]?.find(x=>x.id===rowId);
+  if(r)r[field]=val;
+}
+
+function addReviewerRow(catId){
+  if(!window._draftComments[catId])window._draftComments[catId]=[];
+  window._draftComments[catId].push({id:uid(),name:'',text:''});
+  document.getElementById('reviewers-'+catId).innerHTML=renderReviewerRows(catId);
+}
+
+function delReviewerRow(catId,rowId){
+  window._draftComments[catId]=window._draftComments[catId].filter(r=>r.id!==rowId);
+  document.getElementById('reviewers-'+catId).innerHTML=renderReviewerRows(catId);
+}
+
+function resetDraft(){
+  window._draftComments={};
+  COMMENT_CATS.forEach(c=>{window._draftComments[c.id]=[{id:uid(),name:'',text:''}];});
+  buildCatNav();
+  renderEntCatPanel(entCatCurrent);
+}
+
+/* =============================================
+   SUBMIT + AI ANALYSIS
+============================================= */
+async function submitData(){
+  const p=CP();
+  if(!p){alert('対象者をサイドバーから選択してください');return;}
+  const month=document.getElementById('inp-month').value;
+  const staff=parseInt(document.getElementById('inp-staff').value)||10;
+  if(!month){alert('対象月を選択してください');return;}
+
+  // draftQuestionsからスコア収集
+  const scores={};
+  const questions=draftQuestions.map(q=>({id:q.id,label:q.label,tag:q.tag}));
+  draftQuestions.forEach(q=>{scores[q.id]=q.score||3.5;});
+
+  // collect comments from draft
+  const comments={};
+  const allEntries=[];
+  COMMENT_CATS.forEach(c=>{
+    const rows=(window._draftComments?.[c.id]||[]).filter(r=>r.text.trim());
+    comments[c.id]=rows.map(r=>({id:r.id,reviewerName:r.name,text:r.text,summary:'',sentiment:r.sentiment||''}));
+    // send to AI only entries where user hasn't manually chosen a sentiment
+    const needsAI=comments[c.id].filter(e=>!e.sentiment);
+    allEntries.push(...needsAI.map(e=>({...e,catId:c.id})));
+  });
+
+  function r_hasSentiment(e){return ['plus','minus','neutral'].includes(e.sentiment)&&e.sentiment!=='neutral'||false;}
+
+  const status=document.getElementById('inp-status');
+  status.innerHTML='<div class="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span style="font-size:12px;margin-left:4px">AIがコメントを分析中...</span></div>';
+
+  if(allEntries.length>0){
+    try{
+      const analyzed=await analyzeComments(allEntries);
+      analyzed.forEach(a=>{
+        const cat=comments[a.catId];
+        const e=cat?.find(x=>x.id===a.id);
+        // only overwrite if not manually set (entry was in allEntries = no manual sentiment)
+        if(e&&!e.sentiment){e.summary=a.summary;e.sentiment=a.sentiment;}
+        else if(e){e.summary=a.summary;} // update summary only
+      });
+    }catch(e){console.warn('AI分析エラー',e);}
+  }
+  // ensure all entries have at least 'neutral' fallback
+  COMMENT_CATS.forEach(c=>{
+    (comments[c.id]||[]).forEach(e=>{if(!e.sentiment)e.sentiment='neutral';});
+  });
+
+  const monthData = {month, staff, scores, questions, comments};
+  const idx = p.months.findIndex(d=>d.month===month);
+  if(idx>=0) p.months[idx] = monthData;
+  else { p.months.push(monthData); p.months.sort((a,b)=>a.month.localeCompare(b.month)); }
+
+  // Firestore に即時保存（hookAutoSaveに頼らず確実に保存）
+  if(window._db){
+    try{
+      setFbStatus('💾 保存中...','var(--amber)');
+      // Firestoreは undefined を保存できないので JSON変換でクリーンにする
+      const cleanData = JSON.parse(JSON.stringify(monthData));
+      await window._db.collection('people').doc(p.id).set({id:p.id,name:p.name,role:p.role||'',dept:p.dept||''});
+      await window._db.collection('people').doc(p.id).collection('months').doc(month).set(cleanData);
+      setFbStatus('✓ 保存しました','var(--green)');
+      setTimeout(hideFbStatus,2000);
+    }catch(err){
+      const errMsg = err.code==='permission-denied'?'権限エラー（Firestoreルール確認）':err.message||err.code||String(err);
+      setFbStatus('✕ 保存エラー: '+errMsg,'var(--red)');
+      console.error('submitData save error:',err.code, err.message, err);
+    }
+  }
+
+  status.innerHTML='<span class="st-ok">✅ 保存完了</span>';
+  resetDraft();
+  refreshAll();
+}
+
+async function analyzeComments(entries){
+  const prompt=`以下のコメント一覧をJSON配列で返してください。各要素: {id, catId, summary, sentiment}。`
+    +`summaryは15文字以内の日本語要約。`
+    +`sentimentの判定基準: plus=感謝・褒める・肯定的な内容, minus=不満・批判・改善要求・ネガティブな内容, neutral=どちらでもない・事実記述。`
+    +`JSONのみ返してください（説明不要）。\n\n`
+    +entries.map(e=>`id:${e.id} catId:${e.catId} text:${e.text}`).join('\n');
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:prompt}]})
+  });
+  const data=await res.json();
+  const raw=data.content.map(b=>b.text||'').join('');
+  return JSON.parse(raw.replace(/```json|```/g,'').trim());
+}
+
+/* =============================================
+   CHANGE SAVED COMMENT SENTIMENT
+============================================= */
+function changeSavedSentiment(personId,month,catId,entryId,newSentiment){
+  const p=P(personId);
+  if(!p)return;
+  const md=p.months.find(d=>d.month===month);
+  if(!md)return;
+  const e=(md.comments[catId]||[]).find(x=>x.id===entryId);
+  if(!e)return;
+  // toggle off if same
+  e.sentiment=e.sentiment===newSentiment?'neutral':newSentiment;
+  // re-render only comments panel for instant feedback
+  renderComments();
+  renderOvCatChart();
+  renderOvMetrics();
+}
+
+/* =============================================
+   EXPORT CSV
+============================================= */
+function exportCSV(){
+  const p=CP();
+  if(!p||!p.months.length){alert('エクスポートするデータがありません');return;}
+  const rows=[['月','評価者数','全平均','ポジティブ率%',...SCORE_TAGS.map(t=>t.label)].join(',')];
+  p.months.forEach(d=>{
+    const an=avgMonth(d);const pr=posRate(d.comments);
+    const tagAvgs=SCORE_TAGS.map(t=>avgMonth(d,t.id).toFixed(2));
+    rows.push([d.month,d.staff,an.toFixed(2),pr,...tagAvgs].join(','));
+  });
+  rows.push('');rows.push(['月','質問文','タグ','スコア'].join(','));
+  p.months.forEach(d=>{
+    const qs=d.questions||defaultQuestions;
+    qs.forEach(q=>{rows.push([d.month,'"'+q.label+'"',q.tag||'',(d.scores[q.id]||0).toFixed(1)].join(','));});
+  });
+  // Comments CSV
+  const cHeader=['月','カテゴリー','評価者名','コメント','AI要約','感情'];
+  rows.push('');rows.push(cHeader.join(','));
+  p.months.forEach(d=>{
+    COMMENT_CATS.forEach(c=>{
+      (d.comments[c.id]||[]).forEach(e=>{
+        rows.push([d.month,c.label,e.reviewerName||'',`"${e.text.replace(/"/g,'""')}"`,`"${(e.summary||'').replace(/"/g,'""')}"`,e.sentiment].join(','));
+      });
+    });
+  });
+  const blob=new Blob(['\uFEFF'+rows.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`${p.name}_evaluation.csv`;
+  a.click();
+}
+
+/* =============================================
+   POPULATE SELECTS
+============================================= */
+function populateSelects(){
+  // lag-item-sel と pred-item はタグ選択に変更
+  ['lag-item-sel','pred-item'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.innerHTML='<option value="">全体平均</option>'+SCORE_TAGS.map(t=>`<option value="${t.id}">${t.label}</option>`).join('');
+  });
+  // ov-item-selもタグ選択
+  const ov=document.getElementById('ov-item-sel');
+  if(ov)ov.innerHTML=SCORE_TAGS.map(t=>`<option value="${t.id}">${t.label}</option>`).join('');
+}
+
+/* =============================================
+   REFRESH ALL
+============================================= */
+function refreshAll(){
+  renderSB();
+  renderOvMetrics();
+  renderOvChart();
+  renderOvCatChart();
+  renderComments();
+  renderLawMatrix();
+  const p=CP();
+  document.getElementById('tb-sub').textContent=p?p.name+(p.role?' — '+p.role:''):'評価対象者を選択してください';
+  if(currentView==='insight')renderInsight();
+  if(currentView==='compare')renderCompare();
+  if(currentView==='allboard')renderAllBoard();
+}
+
+/* =============================================
+   INIT
+============================================= */
+
+/* =============================================
+   部署管理
+============================================= */
+let depts = [];          // [{id, name}]
+let deptOpen = {};       // {deptId: bool}
+let _editingDeptId = null;
+let _dragPersonId = null;
+
+function getDept(id){ return depts.find(d=>d.id===id); }
+function peopleOf(deptId){ return people.filter(p=>p.dept===deptId); }
+
+/* ---- 部署追加モーダル ---- */
+function openDeptAddModal(){
+  document.getElementById('dept-name-in').value='';
+  document.getElementById('modal-dept-add').classList.remove('hide');
+  setTimeout(()=>document.getElementById('dept-name-in').focus(),50);
+}
+function closeDeptAddModal(){ document.getElementById('modal-dept-add').classList.add('hide'); }
+async function confirmDeptAdd(){
+  const name=document.getElementById('dept-name-in').value.trim();
+  if(!name){alert('部署名を入力してください');return;}
+  const d={id:'d'+uid(),name};
+  depts.push(d);
+  deptOpen[d.id]=true;
+  closeDeptAddModal();
+  renderSB();
+  // Firestoreに直接保存
+  for(let i=0;i<6;i++){ if(window._db) break; await new Promise(r=>setTimeout(r,500)); }
+  if(!window._db) return;
+  try{
+    await window._db.collection('depts').doc(d.id).set(d);
+    setFbStatus('✓ 部署を保存しました','var(--green)');
+    setTimeout(hideFbStatus,2000);
+  }catch(e){ console.error('deptAdd save error:',e); }
+}
+
+/* ---- 部署編集モーダル ---- */
+function openDeptEditModal(e,deptId){
+  e.stopPropagation();
+  _editingDeptId=deptId;
+  document.getElementById('dept-edit-name-in').value=getDept(deptId)?.name||'';
+  document.getElementById('modal-dept-edit').classList.remove('hide');
+  setTimeout(()=>document.getElementById('dept-edit-name-in').focus(),50);
+}
+function closeDeptEditModal(){ document.getElementById('modal-dept-edit').classList.add('hide'); _editingDeptId=null; }
+async function confirmDeptEdit(){
+  const name=document.getElementById('dept-edit-name-in').value.trim();
+  if(!name){alert('部署名を入力してください');return;}
+  const d=getDept(_editingDeptId);
+  if(d)d.name=name;
+  closeDeptEditModal();
+  renderSB();
+  if(!window._db) return;
+  try{
+    await window._db.collection('depts').doc(d.id).set(d);
+    setFbStatus('✓ 保存しました','var(--green)');
+    setTimeout(hideFbStatus,2000);
+  }catch(e){ console.error('deptEdit save error:',e); }
+}
+
+/* ---- 部署削除 ---- */
+function delDept(e,deptId){
+  e.stopPropagation();
+  const d=getDept(deptId);
+  if(!confirm(`「${d.name}」を削除しますか？
+所属メンバーは「未分類」に移動します。`))return;
+  people.forEach(p=>{ if(p.dept===deptId) p.dept=''; });
+  depts=depts.filter(x=>x.id!==deptId);
+  renderSB();
+  scheduleFbSave();
+}
+
+/* ---- 部署開閉 ---- */
+function toggleDept(deptId){
+  deptOpen[deptId]=!deptOpen[deptId];
+  const body=document.querySelector(`.dept-body[data-dept="${deptId}"]`);
+  const chev=document.querySelector(`.dept-chevron[data-dept="${deptId}"]`);
+  if(body)body.classList.toggle('open',deptOpen[deptId]);
+  if(chev)chev.classList.toggle('open',deptOpen[deptId]);
+}
+
+/* ---- 対象者追加モーダル（部署選択付き） ---- */
+function openPersonAddModal(){
+  document.getElementById('pn-name-in').value='';
+  document.getElementById('pn-role-in').value='';
+  // 部署セレクト更新
+  const sel=document.getElementById('pn-dept-in');
+  sel.innerHTML='<option value="">未分類</option>'+depts.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
+  document.getElementById('modal-person-add').classList.remove('hide');
+  setTimeout(()=>document.getElementById('pn-name-in').focus(),50);
+}
+function closePersonAddModal(){ document.getElementById('modal-person-add').classList.add('hide'); }
+async function confirmPersonAdd(){
+  const name=document.getElementById('pn-name-in').value.trim();
+  if(!name){alert('氏名を入力してください');return;}
+  const role=document.getElementById('pn-role-in').value.trim();
+  const dept=document.getElementById('pn-dept-in').value||'';
+  const np={id:'p'+uid(),name,role,dept,months:[]};
+  people.push(np);
+  currentId=np.id;
+  if(dept&&deptOpen[dept]===undefined)deptOpen[dept]=true;
+  closePersonAddModal();
+  renderSB();
+  refreshAll();
+  // Firestoreに直接保存（_dbが設定されるまでリトライ）
+  await fbSavePerson(np);
+}
+
+async function fbSavePerson(p){
+  // _db が未設定の場合は最大3秒待つ
+  for(let i=0;i<6;i++){
+    if(window._db) break;
+    await new Promise(r=>setTimeout(r,500));
+  }
+  if(!window._db){
+    setFbStatus('✕ Firestore未接続（リロードして再試行してください）','var(--red)');
+    return;
+  }
+  try{
+    setFbStatus('💾 保存中...','var(--amber)');
+    await window._db.collection('people').doc(p.id).set({
+      id:p.id, name:p.name, role:p.role||'', dept:p.dept||''
+    });
+    setFbStatus('✓ 保存しました','var(--green)');
+    setTimeout(hideFbStatus,2000);
+  }catch(e){
+    setFbStatus('✕ 保存エラー','var(--red)');
+    console.error('fbSavePerson error:',e);
+  }
+}
+
+/* ---- Drag & Drop ---- */
+function onDragStart(e,personId){
+  _dragPersonId=personId;
+  e.dataTransfer.effectAllowed='move';
+  e.dataTransfer.setData('text/plain',personId);
+  setTimeout(()=>{
+    const el=document.querySelector(`[data-person="${personId}"]`);
+    if(el)el.classList.add('dragging');
+  },0);
+}
+function onDragEnd(e){
+  _dragPersonId=null;
+  document.querySelectorAll('.dragging').forEach(el=>el.classList.remove('dragging'));
+  document.querySelectorAll('.drag-over,.drag-over-hd').forEach(el=>el.classList.remove('drag-over','drag-over-hd'));
+}
+function onDragOver(e,deptId){
+  if(!_dragPersonId)return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect='move';
+  document.querySelectorAll('.drag-over,.drag-over-hd').forEach(el=>el.classList.remove('drag-over','drag-over-hd'));
+  const body=document.querySelector(`.dept-body[data-dept="${deptId}"]`);
+  const hd=document.querySelector(`.dept-hd[data-dept="${deptId}"]`);
+  if(body&&deptOpen[deptId])body.classList.add('drag-over');
+  else if(hd)hd.classList.add('drag-over-hd');
+}
+function onDragLeave(e){
+  if(e.relatedTarget&&e.currentTarget.contains(e.relatedTarget))return;
+  e.currentTarget.classList.remove('drag-over','drag-over-hd');
+}
+function onDrop(e,targetDeptId){
+  e.preventDefault();
+  const pid=e.dataTransfer.getData('text/plain')||_dragPersonId;
+  if(!pid)return;
+  const p=P(pid);
+  if(!p)return;
+  const newDept=targetDeptId==='__none'?'':targetDeptId;
+  if(p.dept===newDept)return;
+  const fromName=p.dept?(getDept(p.dept)?.name||'未分類'):'未分類';
+  const toName=newDept?(getDept(newDept)?.name||'未分類'):'未分類';
+  p.dept=newDept;
+  if(newDept&&deptOpen[newDept]===undefined)deptOpen[newDept]=true;
+  renderSB();
+  setFbStatus(`✓ ${p.name} → ${toName}に移動`, 'var(--green)');
+  setTimeout(hideFbStatus,2500);
+  // 部署移動を即座にFirestoreへ反映
+  if(window._db){
+    window._db.collection('people').doc(p.id).set(
+      {id:p.id, name:p.name, role:p.role||'', dept:p.dept||''},
+      {merge:true}
+    ).catch(e=>console.error('dept move save error:',e));
+  }
+}
+
+/* ---- renderSB: 部署アコーディオン版 ---- */
+function renderSB(){
+  let html='';
+
+  // 各部署
+  depts.forEach(dept=>{
+    const isOpen=deptOpen[dept.id]!==false;
+    const members=peopleOf(dept.id);
+    html+=`<div class="dept-group">
+      <div class="dept-hd" data-dept="${dept.id}"
+        onclick="toggleDept('${dept.id}')"
+        ondragover="onDragOver(event,'${dept.id}')"
+        ondragleave="onDragLeave(event)"
+        ondrop="onDrop(event,'${dept.id}')">
+        <span class="dept-chevron ${isOpen?'open':''}" data-dept="${dept.id}">▶</span>
+        <span class="dept-label">${dept.name}</span>
+        <span class="dept-badge">${members.length}</span>
+        <button class="dept-edit-btn" onclick="openDeptEditModal(event,'${dept.id}')" title="編集">✎</button>
+        <button class="dept-del-btn" onclick="delDept(event,'${dept.id}')" title="削除">×</button>
+      </div>
+      <div class="dept-body ${isOpen?'open':''}" data-dept="${dept.id}"
+        ondragover="onDragOver(event,'${dept.id}')"
+        ondragleave="onDragLeave(event)"
+        ondrop="onDrop(event,'${dept.id}')">
+        ${members.map(p=>{
+          const i=people.indexOf(p);
+          return `<div class="person-row ${p.id===currentId?'active':''}" data-person="${p.id}"
+            draggable="true"
+            onclick="openPersonDetail('${p.id}')"
+            ondragstart="onDragStart(event,'${p.id}')"
+            ondragend="onDragEnd(event)">
+            <span class="drag-handle" title="ドラッグで移動">⠿</span>
+            <div class="av ${avCls(i)}">${initials(p.name)}</div>
+            <div class="person-info">
+              <div class="person-name">${p.name}</div>
+              ${p.role?`<div class="person-role">${p.role}</div>`:''}
+            </div>
+            <button class="del-btn" onclick="delPerson(event,'${p.id}')">×</button>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  });
+
+  // 未分類
+  const noDept=people.filter(p=>!p.dept||!getDept(p.dept));
+  if(noDept.length||!depts.length){
+    const isOpen=deptOpen['__none']!==false;
+    html+=`<div class="dept-group">
+      <div class="dept-hd" data-dept="__none"
+        onclick="toggleDept('__none')"
+        ondragover="onDragOver(event,'__none')"
+        ondragleave="onDragLeave(event)"
+        ondrop="onDrop(event,'__none')">
+        <span class="dept-chevron ${isOpen?'open':''}" data-dept="__none">▶</span>
+        <span class="dept-label" style="color:var(--ink3)">未分類</span>
+        <span class="dept-badge">${noDept.length}</span>
+      </div>
+      <div class="dept-body ${isOpen?'open':''}" data-dept="__none"
+        ondragover="onDragOver(event,'__none')"
+        ondragleave="onDragLeave(event)"
+        ondrop="onDrop(event,'__none')">
+        ${noDept.map(p=>{
+          const i=people.indexOf(p);
+          return `<div class="person-row ${p.id===currentId?'active':''}" data-person="${p.id}"
+            draggable="true"
+            onclick="openPersonDetail('${p.id}')"
+            ondragstart="onDragStart(event,'${p.id}')"
+            ondragend="onDragEnd(event)">
+            <span class="drag-handle" title="ドラッグで移動">⠿</span>
+            <div class="av ${avCls(i)}">${initials(p.name)}</div>
+            <div class="person-info">
+              <div class="person-name">${p.name}</div>
+              ${p.role?`<div class="person-role">${p.role}</div>`:''}
+            </div>
+            <button class="del-btn" onclick="delPerson(event,'${p.id}')">×</button>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
+  if(!html)html='<div style="font-size:11px;color:var(--ink4);padding:8px">対象者を追加してください</div>';
+  document.getElementById('sb-people').innerHTML=html;
+
+  const sw=document.getElementById('person-sw');
+  if(sw)sw.innerHTML=people.map(p=>`<option value="${p.id}"${p.id===currentId?' selected':''}>${p.name}</option>`).join('');
+}
+
+/* ---- Firestore に depts も保存 ---- */
+function scheduleFbSave(){
+  if(window._db) scheduleSave(window._db);
+}
+
+
+/* =============================================
+   DATA EDIT — 月選択・編集モード
+============================================= */
+let _editingMonth = null; // 編集中の月 ('YYYY-MM') または null(新規)
+
+// データ入力タブを開いたとき・人物切替後に呼ぶ
+function renderMonthPills(){
+  const p = CP();
+  const pills = document.getElementById('month-pills');
+  if(!p || !p.months.length){
+    pills.innerHTML = '<span style="font-size:12px;color:var(--ink3)">まだデータがありません。「新しい月を追加」から入力してください。</span>';
+    return;
+  }
+  pills.innerHTML = [...p.months].sort((a,b)=>a.month.localeCompare(b.month)).map(md => {
+    const active = _editingMonth === md.month;
+    const sc = avgMonth(md).toFixed(1);
+    return `<button class="month-pill ${active?'active':''}" onclick="loadMonthForEdit('${md.month}')">
+      ${mLabel(md.month)}
+      <span style="font-size:10px;opacity:.7;margin-left:2px">${sc}点</span>
+    </button>`;
+  }).join('');
+}
+
+// 新しい月の追加開始
+function startNewMonth(){
+  const p = CP();
+  if(!p){ alert('サイドバーから評価対象者を選択してください'); return; }
+  _editingMonth = null;
+  // 月入力欄をリセット
+  const now = new Date();
+  document.getElementById('inp-month').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('inp-staff').value = 10;
+  // スコア・コメントをデフォルトに
+  draftQuestions = defaultQuestions.map(q=>({...q, score:3.5}));
+  renderScoreGrid();
+  resetDraft();
+  // UI更新
+  document.getElementById('edit-mode-banner').style.display = 'none';
+  document.getElementById('input-form-area').style.display = 'block';
+  document.getElementById('inp-status').innerHTML = '';
+  renderMonthPills();
+  // フォームにスクロール
+  document.getElementById('input-form-area').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+// 既存月のデータを読み込んで編集開始
+function loadMonthForEdit(month){
+  const p = CP();
+  if(!p) return;
+  const md = p.months.find(d=>d.month===month);
+  if(!md) return;
+  _editingMonth = month;
+
+  // 基本情報
+  document.getElementById('inp-month').value = month;
+  document.getElementById('inp-month').disabled = false; // 月も編集可能
+  document.getElementById('inp-staff').value = md.staff || 10;
+
+  // スコア読み込み
+  const qs = md.questions || defaultQuestions;
+  draftQuestions = qs.map(q=>({...q, score: md.scores[q.id] || 3.5}));
+  renderScoreGrid();
+
+  // コメント読み込み
+  window._draftComments = {};
+  COMMENT_CATS.forEach(cat=>{
+    const saved = md.comments[cat.id] || [];
+    window._draftComments[cat.id] = saved.length
+      ? saved.map(e=>({...e})) // コピー
+      : [{id:uid(), name:'', text:'', sentiment:''}];
+  });
+  buildCatNav();
+  renderEntCatPanel(entCatCurrent);
+
+  // バナー表示
+  document.getElementById('edit-mode-label').textContent = mLabel(month);
+  document.getElementById('edit-mode-banner').style.display = 'flex';
+  document.getElementById('input-form-area').style.display = 'block';
+  document.getElementById('inp-status').innerHTML = '';
+
+  renderMonthPills();
+  document.getElementById('input-form-area').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+// 編集キャンセル
+function cancelEdit(){
+  _editingMonth = null;
+  document.getElementById('inp-month').disabled = false;
+  document.getElementById('edit-mode-banner').style.display = 'none';
+  document.getElementById('input-form-area').style.display = 'none';
+  renderMonthPills();
+  draftQuestions = defaultQuestions.map(q=>({...q, score:3.5}));
+  renderScoreGrid();
+  resetDraft();
+}
+
+// 現在編集中の月を削除
+async function deleteCurrentMonth(){
+  if(!_editingMonth) return;
+  const p = CP();
+  if(!p) return;
+  if(!confirm(`${mLabel(_editingMonth)} のデータを削除しますか？この操作は取り消せません。`)) return;
+  const monthToDelete = _editingMonth;
+  p.months = p.months.filter(d=>d.month!==monthToDelete);
+  cancelEdit();
+  refreshAll();
+  // Firestoreからも削除
+  if(window._db){
+    try{
+      await window._db.collection('people').doc(p.id).collection('months').doc(monthToDelete).delete();
+      setFbStatus('✓ 削除しました','var(--green)');
+      setTimeout(hideFbStatus,2000);
+    }catch(e){ console.error('月削除エラー',e); }
+  }
+}
+
+// submitData の前処理フック（月変更時の旧データ削除）
+const _origSubmitData = submitData;
+submitData = async function(){
+  const p = CP();
+  const newMonth = document.getElementById('inp-month').value;
+  // 月を変更した場合、古いデータを先に削除
+  if(_editingMonth && p && newMonth && newMonth !== _editingMonth){
+    if(!confirm(`対象月を「${mLabel(_editingMonth)}」から「${mLabel(newMonth)}」に変更します。\n元の月（${mLabel(_editingMonth)}）のデータは削除されます。よろしいですか？`)){
+      return;
+    }
+    // ローカルから旧月削除
+    p.months = p.months.filter(d=>d.month !== _editingMonth);
+    // Firestoreからも旧月削除
+    if(window._db){
+      try{ await window._db.collection('people').doc(p.id).collection('months').doc(_editingMonth).delete(); }
+      catch(e){ console.warn('旧月削除エラー',e); }
+    }
+  }
+  await _origSubmitData.apply(this, arguments);
+  // 保存後の後処理
+  _editingMonth = null;
+  document.getElementById('edit-mode-banner').style.display = 'none';
+  renderMonthPills();
+};
+
+// goViewで input タブを開いたとき月ピルを更新
+const _origGoView = goView;
+goView = function(v, btn){
+  _origGoView.apply(this, arguments);
+  if(v==='input'){
+    renderMonthPills();
+    restoreSheetUrl();
+    // フォームエリアは非表示でスタート
+    document.getElementById('input-form-area').style.display = 'none';
+    document.getElementById('edit-mode-banner').style.display = 'none';
+  }
+};
+
+// switchPerson 後も月ピルをリセット
+const _origSwitchPerson = switchPerson;
+switchPerson = function(id){
+  _origSwitchPerson.apply(this, arguments);
+  _editingMonth = null;
+  document.getElementById('inp-month').disabled = false;
+  if(document.getElementById('edit-mode-banner'))
+    document.getElementById('edit-mode-banner').style.display = 'none';
+  if(document.getElementById('input-form-area'))
+    document.getElementById('input-form-area').style.display = 'none';
+  renderMonthPills();
+};
+
+
+/* =============================================
+   CSV DROP IMPORT — シンプル版
+============================================= */
+let _csvData = null; // パース済みCSVデータ
+
+// スコア文字列から数値を抽出「4：できている」→ 4
+function parseScore(val){
+  if(!val&&val!==0)return null;
+  const s=String(val).trim();
+  const m=s.match(/^([1-5])/);
+  if(m)return parseFloat(m[1]);
+  const n=parseFloat(s);
+  return(!isNaN(n)&&n>=1&&n<=5)?n:null;
+}
+
+// シンプルなCSVパーサー（ダブルクォート対応）
+function parseCSV(text){
+  const rows=[];
+  const lines=text.split(/\r?\n/);
+  lines.forEach(line=>{
+    if(!line.trim())return;
+    const cols=[]; let cur='',inQ=false;
+    for(let i=0;i<line.length;i++){
+      const ch=line[i];
+      if(ch==='"'){
+        if(inQ&&line[i+1]==='"'){cur+='"';i++;}
+        else inQ=!inQ;
+      }else if(ch===','&&!inQ){cols.push(cur.trim());cur='';}
+      else cur+=ch;
+    }
+    cols.push(cur.trim()); rows.push(cols);
+  });
+  return rows;
+}
+
+function onCsvDrop(e){
+  e.preventDefault();
+  document.getElementById('csv-dropzone').classList.remove('dz-over');
+  const file=e.dataTransfer.files[0];
+  if(file)readCsvFile(file);
+}
+function onCsvFileSelect(e){
+  const file=e.target.files[0];
+  if(file)readCsvFile(file);
+}
+
+function readCsvFile(file){
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const rows=parseCSV(ev.target.result);
+    if(rows.length<2){alert('CSVが読み込めませんでした');return;}
+    _csvData=rows;
+    setupImportUI(rows);
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
+function setupImportUI(rows){
+  const dataRows=rows.slice(1).filter(r=>r.some(v=>v.trim()));
+  document.getElementById('csv-loaded-msg').textContent=
+    `✓ ${dataRows.length}件の回答を読み込みました。このまま集計します。`;
+  document.getElementById('csv-dropzone').style.display='none';
+  document.getElementById('csv-import-settings').style.display='block';
+}
+
+function applyImport(){
+  if(!_csvData)return;
+  const header=_csvData[0];
+  // 1行目はヘッダー、残り全行を対象（空行除外）
+  const rows=_csvData.slice(1).filter(r=>r.some(v=>(v||'').trim()));
+
+  if(!rows.length){
+    document.getElementById('import-log').textContent='⚠ データ行がありません';
+    return;
+  }
+
+  /* ── 固定列マッピング ──
+     C(2)D(3)E(4)   : 業務運営スコア      F(5) : 業務運営コメント
+     G(6)H(7)I(8)   : 支援育成スコア      J(9) : 支援育成コメント
+     K(10)L(11)M(12): 制度運用スコア      N(13): 制度運用コメント
+     O(14)P(15)Q(16): コミュニケーションスコア R(17): コミュニケーションコメント
+     S(18)T(19)U(20): 公平性スコア        V(21): 公平性コメント
+     W(22): 総合コメント
+  ── */
+  const SCORE_MAP=[
+    {tag:'ops',     cols:[2,3,4],   commentCol:5},
+    {tag:'support', cols:[6,7,8],   commentCol:9},
+    {tag:'system',  cols:[10,11,12],commentCol:13},
+    {tag:'comm',    cols:[14,15,16],commentCol:17},
+    {tag:'fair',    cols:[18,19,20],commentCol:21},
+  ];
+  const OVERALL_COL=22;
+
+  // スコア：各列の全行平均
+  const importedQuestions=[];
+  SCORE_MAP.forEach(group=>{
+    group.cols.forEach((ci,idx)=>{
+      const label=(header[ci]||'').trim()||('質問'+(importedQuestions.length+1));
+      const vals=rows.map(r=>parseScore(r[ci])).filter(v=>v!==null);
+      const score=vals.length?+(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2):3.5;
+      const match=defaultQuestions.find(dq=>{
+        const dl=dq.label.replace(/\s/g,'');
+        const hl=label.replace(/\s/g,'');
+        return dl===hl||dl.includes(hl.slice(0,6))||hl.includes(dl.slice(0,6));
+      });
+      importedQuestions.push({
+        id:   match?match.id:('sq_'+group.tag+'_'+idx),
+        label:label,
+        tag:  group.tag,
+        score:score
+      });
+    });
+  });
+
+  // コメント：全行から収集（「なし」系はスキップ）
+  const SKIP=/^(なし|特になし|特にありません|とくになし|無し|ない|なし。|-|特に無し)$/;
+  const importedComments={};
+  COMMENT_CATS.forEach(cat=>{ importedComments[cat.id]=[]; });
+
+  SCORE_MAP.forEach(group=>{
+    rows.forEach((row,ri)=>{
+      const txt=(row[group.commentCol]||'').trim();
+      if(!txt||SKIP.test(txt))return;
+      importedComments[group.tag].push({
+        id:uid(), reviewerName:'回答者'+(ri+1),
+        text:txt, summary:'', sentiment:''
+      });
+    });
+  });
+
+  rows.forEach((row,ri)=>{
+    const txt=(row[OVERALL_COL]||'').trim();
+    if(!txt||SKIP.test(txt))return;
+    importedComments['overall'].push({
+      id:uid(), reviewerName:'回答者'+(ri+1),
+      text:txt, summary:'', sentiment:''
+    });
+  });
+
+  // 空カテゴリーに初期行
+  COMMENT_CATS.forEach(cat=>{
+    if(!importedComments[cat.id].length)
+      importedComments[cat.id]=[{id:uid(),name:'',text:'',sentiment:''}];
+  });
+
+  // undefined値を除去
+  COMMENT_CATS.forEach(function(cat){
+    importedComments[cat.id]=(importedComments[cat.id]||[]).map(function(e){
+      return {id:e.id||uid(),reviewerName:e.reviewerName||'',text:e.text||'',summary:'',sentiment:e.sentiment||''};
+    });
+  });
+  // フォームに反映
+  draftQuestions=importedQuestions;
+  renderScoreGrid();
+  window._draftComments=importedComments;
+  buildCatNav();
+  renderEntCatPanel(entCatCurrent);
+
+  // 対象月をセット
+  const targetMonth=document.getElementById('csv-target-month').value;
+  if(targetMonth) document.getElementById('inp-month').value=targetMonth;
+  document.getElementById('inp-staff').value=rows.length;
+  document.getElementById('edit-mode-banner').style.display='none';
+  document.getElementById('input-form-area').style.display='block';
+
+  const totalCmt=Object.values(importedComments).flat().filter(e=>e.text).length;
+  document.getElementById('import-log').textContent=`✅ ${rows.length}件を集計完了　スコア${importedQuestions.length}項目 / コメント${totalCmt}件`;
+  document.getElementById('input-form-area').scrollIntoView({behavior:'smooth',block:'start'});
+
+}
+
+
+
+function resetCsvImport(){
+  _csvData=null;
+  document.getElementById('csv-dropzone').style.display='block';
+  document.getElementById('csv-import-settings').style.display='none';
+  document.getElementById('csv-file-in').value='';
+  document.getElementById('import-log').textContent='';
+}
+
+function restoreSheetUrl(){ /* 旧機能・互換維持のため空実装 */ }
+
+
+
+/* =============================================
+   PERSON DETAIL MODAL
+============================================= */
+let _pdChart = null;
+let _pdPersonId = null;
+let _pdMonth = null;
+
+function openPersonDetail(personId){
+  const p = P(personId);
+  if(!p){ switchPerson(personId); return; }
+  _pdPersonId = personId;
+  // 人物切り替えも行う
+  switchPerson(personId);
+
+  const i = people.indexOf(p);
+  // ヘッダー
+  const avEl = document.getElementById('pd-avatar');
+  avEl.className = 'av ' + avCls(i);
+  avEl.style.cssText = 'width:36px;height:36px;font-size:14px';
+  avEl.textContent = initials(p.name);
+  document.getElementById('pd-name').textContent = p.name;
+  document.getElementById('pd-role').textContent = p.role || '';
+
+  if(!p.months.length){
+    document.getElementById('pd-avg-badge').textContent = 'データなし';
+    document.getElementById('pd-pr-badge').textContent = '';
+    document.getElementById('pd-month-tabs').innerHTML = '<span style="font-size:12px;color:var(--ink3)">データがありません</span>';
+    document.getElementById('pd-scores').innerHTML = '';
+    document.getElementById('pd-comments').innerHTML = '';
+    document.getElementById('pd-chart').getContext && document.getElementById('pd-chart').getContext('2d');
+    document.getElementById('modal-person-detail').classList.remove('hide');
+    return;
+  }
+
+  const lat = p.months[p.months.length-1];
+  const an = avgMonth(lat);
+  const pr = posRate(lat.comments);
+  const avgEl = document.getElementById('pd-avg-badge');
+  avgEl.textContent = an.toFixed(1) + '点';
+  avgEl.style.color = an>=4?'var(--green)':an>=3.5?'var(--amber)':'var(--red)';
+  document.getElementById('pd-pr-badge').textContent = '満足度 ' + pr + '%';
+
+  // 推移グラフ
+  renderPdChart(p);
+
+  // 月タブ（新しい月が先）
+  const months = [...p.months].sort((a,b)=>b.month.localeCompare(a.month));
+  document.getElementById('pd-month-tabs').innerHTML = months.map(md =>
+    `<button class="month-tab ${md.month===(_pdMonth||lat.month)?'on':''}"
+      onclick="selectPdMonth('${md.month}')">${mLabel(md.month)}
+      <span style="opacity:.7;font-size:10px"> ${avgMonth(md).toFixed(1)}点</span>
+    </button>`
+  ).join('');
+
+  // 最新月のデータを表示
+  _pdMonth = _pdMonth && p.months.find(d=>d.month===_pdMonth) ? _pdMonth : lat.month;
+  renderPdMonthDetail(p, _pdMonth);
+
+  document.getElementById('modal-person-detail').classList.remove('hide');
+}
+
+function closePersonDetailModal(){
+  document.getElementById('modal-person-detail').classList.add('hide');
+  _pdMonth = null;
+}
+
+function selectPdMonth(month){
+  _pdMonth = month;
+  const p = P(_pdPersonId);
+  if(!p) return;
+  // タブ更新
+  document.querySelectorAll('.month-tab').forEach(btn=>{
+    btn.classList.toggle('on', btn.textContent.trim().startsWith(mLabel(month)));
+  });
+  renderPdMonthDetail(p, month);
+}
+
+function renderPdChart(p){
+  const labels = p.months.map(d=>mLabel(d.month));
+  const overallData = p.months.map(d=>+avgMonth(d).toFixed(2));
+  const catDatasets = SCORE_TAGS.map((t,i)=>({
+    label: t.label,
+    data: p.months.map(d=>+avgMonth(d,t.id).toFixed(2)),
+    borderColor: cc(i), backgroundColor: 'transparent',
+    tension:.35, borderWidth:1.5, pointRadius:2, borderDash:[4,3]
+  }));
+  const mainDataset = {
+    label:'全体平均', data:overallData,
+    borderColor:'#1a5fd4', backgroundColor:'rgba(26,95,212,.07)',
+    tension:.35, borderWidth:2.5, pointRadius:3, pointBackgroundColor:'#1a5fd4'
+  };
+  document.getElementById('pd-cat-legend').innerHTML =
+    SCORE_TAGS.map((t,i)=>`<div class="ld"><div class="ldd" style="background:${cc(i)}"></div>${t.label}</div>`).join('');
+  if(_pdChart) _pdChart.destroy();
+  _pdChart = new Chart(document.getElementById('pd-chart'),{
+    type:'line',
+    data:{labels, datasets:[mainDataset,...catDatasets]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{y:{min:1,max:5,ticks:{font:{size:10}}}}}
+  });
+}
+
+function renderPdMonthDetail(p, month){
+  const md = p.months.find(d=>d.month===month);
+  if(!md) return;
+  document.getElementById('pd-score-title').textContent =
+    `スコア一覧 — ${mLabel(month)}（平均 ${avgMonth(md).toFixed(2)}点）`;
+
+  // スコア一覧
+  const qs = md.questions || defaultQuestions;
+  document.getElementById('pd-scores').innerHTML = qs.map(q=>{
+    const v = md.scores[q.id]||0;
+    const cls = v>=4?'hi':v>=3.5?'md':'lo';
+    const tagLabel = (SCORE_TAGS.find(t=>t.id===q.tag)||{label:''}).label;
+    return `<div class="detail-score-item">
+      <span class="detail-score-name">${q.label}${tagLabel?`<br><span class="tag-badge tag-${q.tag}" style="font-size:9px">${tagLabel}</span>`:''}
+      </span>
+      <span class="detail-score-val ${cls}">${v>0?v.toFixed(1):'-'}</span>
+    </div>`;
+  }).join('');
+
+  // コメント一覧（カテゴリー別）
+  let cmtHtml = '';
+  let hasCmt = false;
+  COMMENT_CATS.forEach(cat=>{
+    const entries = (md.comments[cat.id]||[]).filter(e=>e.text);
+    if(!entries.length) return;
+    hasCmt = true;
+    cmtHtml += `<div style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:600;color:var(--teal);margin-bottom:6px">${cat.label}</div>
+      ${entries.map(e=>`
+        <div class="cmt-card ${e.sentiment||'neutral'}" style="margin-bottom:6px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:6px">
+            <span class="badge b-${e.sentiment||'neutral'}" style="font-size:10px">${e.sentiment==='plus'?'👍 プラス':e.sentiment==='minus'?'👎 マイナス':'➖ ニュートラル'}</span>
+            ${e.reviewerName?`<span style="font-size:10px;color:var(--ink3)">${e.reviewerName}</span>`:''}
+          </div>
+          <div style="font-size:12px;color:var(--ink);line-height:1.6">${e.text}</div>
+          ${e.summary?`<div style="font-size:10px;color:var(--ink3);margin-top:4px;font-style:italic">要約: ${e.summary}</div>`:''}
+        </div>`).join('')}
+    </div>`;
+  });
+  document.getElementById('pd-comments').innerHTML = hasCmt ? cmtHtml
+    : '<div style="font-size:12px;color:var(--ink3)">コメントはありません</div>';
+}
+
+function init(){
+  const now=new Date();
+  const _nowYM=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('inp-month').value=_nowYM;
+  const _ctm=document.getElementById('csv-target-month');
+  if(_ctm)_ctm.value=_nowYM;
+  populateSelects();
+  initDraftQuestions();
+  buildScoreGrid();
+  resetDraft();
+  renderSB();
+  refreshAll();
+  // デフォルトビューを全体ダッシュボードに
+  goView('allboard', document.getElementById('nav-allboard'));
+  renderAllBoard();
+}
+
+// 月が変わったらその月の質問セットを読み込む
+document.addEventListener('DOMContentLoaded',()=>{
+  const inpMonth=document.getElementById('inp-month');
+  if(inpMonth){
+    inpMonth.addEventListener('change',()=>{
+      initDraftQuestions();
+      renderScoreGrid();
+    });
+  }
+});
+
+init();
+
+
+/* =============================================
+   FIREBASE 自動保存
+   ・ページ読み込み時にFirestoreからデータ取得
+   ・データ変更時に自動保存（1.5秒デバウンス）
+============================================= */
+const FB_CFG = {
+  apiKey: "AIzaSyB13BpyTYRiGYK1PsQ0asRVULr5sMWpPVo",
+  authDomain: "performance-134ed.firebaseapp.com",
+  projectId: "performance-134ed",
+  storageBucket: "performance-134ed.firebasestorage.app",
+  messagingSenderId: "892441674268",
+  appId: "1:892441674268:web:ac4213326057b0f76395d9"
+};
+
+function setFbStatus(msg, color){
+  let el = document.getElementById('fb-status-bar');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'fb-status-bar';
+    el.style.cssText = [
+      'position:fixed','bottom:12px','right:16px','font-size:11px',
+      'padding:5px 14px','border-radius:20px','background:var(--surf)',
+      'border:0.5px solid var(--bdr2)','box-shadow:var(--sh)',
+      'z-index:9999','transition:opacity .5s'
+    ].join(';');
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.color = color || 'var(--ink2)';
+  el.style.opacity = '1';
+}
+function hideFbStatus(){ const el=document.getElementById('fb-status-bar'); if(el) el.style.opacity='0'; }
+
+// Firestoreから全データ読み込み
+async function fbLoad(db){
+  setFbStatus('⏳ データを読み込み中...', 'var(--amber)');
+  try {
+    // 部署読み込み
+    const dSnap = await db.collection('depts').get();
+    if(!dSnap.empty){ depts.length=0; dSnap.forEach(d=>depts.push(d.data())); }
+    // 人物読み込み
+    const pSnap = await db.collection('people').get();
+    if(!pSnap.empty){
+      const loaded = [];
+      for(const pd of pSnap.docs){
+        const person = {...pd.data(), months:[], sheetUrl:pd.data().sheetUrl||'', sheetColTimestamp:pd.data().sheetColTimestamp||1, sheetColPerson:pd.data().sheetColPerson||2, sheetColScoreStart:pd.data().sheetColScoreStart||3};
+        const mSnap = await db.collection('people').doc(pd.id).collection('months').get();
+        mSnap.forEach(md => person.months.push(md.data()));
+        person.months.sort((a,b) => a.month.localeCompare(b.month));
+        loaded.push(person);
+      }
+      people.length = 0;
+      loaded.forEach(p => people.push(p));
+      currentId = people[0].id;
+      cmpSelected = people.map(p => p.id);
+    }
+    refreshAll();
+    renderAllBoard();
+    setFbStatus('● Firestore 接続済み', 'var(--green)');
+    setTimeout(hideFbStatus, 2500);
+  } catch(e){
+    setFbStatus('✕ 読込エラー（オフライン動作）', 'var(--red)');
+    refreshAll();
+    console.error('fbLoad error:', e);
+  }
+}
+
+// 保存（デバウンス：1.5秒後に実行）
+let _saveTimer = null;
+function scheduleSave(db){
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => fbSaveAll(db), 1500);
+}
+
+async function fbSaveAll(db){
+  if(people.length === 0 && depts.length === 0) return;
+  setFbStatus('💾 保存中...', 'var(--amber)');
+  try {
+    for(const d of depts){
+      await db.collection('depts').doc(d.id).set(d);
+    }
+    for(const p of people){
+      await db.collection('people').doc(p.id).set({id:p.id, name:p.name, role:p.role||'', dept:p.dept||'', sheetUrl:p.sheetUrl||''});
+      for(const m of p.months){
+        const cleanM = JSON.parse(JSON.stringify(m));
+        await db.collection('people').doc(p.id).collection('months').doc(m.month).set(cleanM);
+      }
+    }
+    setFbStatus('✓ 保存しました', 'var(--green)');
+    setTimeout(hideFbStatus, 2000);
+  } catch(e){
+    setFbStatus('✕ 保存エラー', 'var(--red)');
+    console.error('fbSaveAll error:', e);
+  }
+}
+
+// データを変更する関数に自動保存をフック
+function hookAutoSave(db){
+  // ── 人物・部署の追加／編集に保存フック ──
+  // confirmPersonAdd（新しい関数名）
+  // 直接Firestoreに保存する関数はラップ不要
+  // confirmPersonAdd / confirmDeptAdd / confirmDeptEdit は各関数内で直接保存済み
+  const _wrapFns = ['changeSavedSentiment'];
+  _wrapFns.forEach(fnName => {
+    if(typeof window[fnName] !== 'function') return;
+    const orig = window[fnName];
+    window[fnName] = function(){
+      const result = orig.apply(this, arguments);
+      scheduleSave(db);
+      return result;
+    };
+  });
+
+  // ── 人物削除：Firestoreからも消す ──
+  if(typeof window.delPerson === 'function'){
+    const orig = window.delPerson;
+    window.delPerson = async function(e, id){
+      orig.apply(this, arguments);
+      try {
+        const mSnap = await db.collection('people').doc(id).collection('months').get();
+        const batch = db.batch();
+        mSnap.forEach(d => batch.delete(d.ref));
+        batch.delete(db.collection('people').doc(id));
+        await batch.commit();
+        setFbStatus('✓ 削除しました', 'var(--green)');
+        setTimeout(hideFbStatus, 2000);
+      } catch(err){ console.error('delPerson Firestore error:', err); }
+    };
+  }
+
+  // ── 部署削除：Firestoreからも消す ──
+  if(typeof window.delDept === 'function'){
+    const origDelDept = window.delDept;
+    window.delDept = async function(e, id){
+      origDelDept.apply(this, arguments);
+      try {
+        await db.collection('depts').doc(id).delete();
+        setFbStatus('✓ 部署を削除しました', 'var(--green)');
+        setTimeout(hideFbStatus, 2000);
+      } catch(err){ console.error('delDept Firestore error:', err); }
+    };
+  }
+}
+
+// 起動：Firebase SDK を動的ロード → Firestore読込 → フック設定
+(function(){
+  const s1 = document.createElement('script');
+  s1.src = 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js';
+  s1.onload = function(){
+    const s2 = document.createElement('script');
+    s2.src = 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js';
+    s2.onload = function(){
+      firebase.initializeApp(FB_CFG);
+      const db = firebase.firestore();
+      window._db = db;
+      fbLoad(db).then(() => hookAutoSave(db));
+    };
+    document.head.appendChild(s2);
+  };
+  document.head.appendChild(s1);
+})();
+
+
+/* =============================================
+   INSIGHT 分析
+============================================= */
+let chartInsCat=null, chartInsDiff=null;
+
+function renderInsight(){
+  const p=CP();
+  const empty='<div class="empty">データがありません</div>';
+  if(!p||!p.months.length){
+    ['ins-metrics','ins-top5','ins-worst5'].forEach(id=>{
+      const el=document.getElementById(id);if(el)el.innerHTML=empty;
+    });
+    return;
+  }
+  const months=p.months;
+  const lat=months[months.length-1];
+  const an=avgMonth(lat), pr=posRate(lat.comments);
+  const prev=months.length>1?months[months.length-2]:null;
+  const diff=prev?+(an-avgMonth(prev)).toFixed(2):null;
+  const allScores=months.map(m=>avgMonth(m));
+  const trend=months.length>=2?+(allScores[allScores.length-1]-allScores[0]).toFixed(2):0;
+
+  // メトリクス
+  document.getElementById('ins-metrics').innerHTML=
+    '<div class="metric '+(an>=4?'up':an>=3.5?'md':'dn')+'">'
+      +'<div class="metric-label">最新平均スコア</div>'
+      +'<div class="metric-num">'+an.toFixed(1)+'</div>'
+      +'<div class="metric-sub">'+(diff!==null?(diff>=0?'▲':'▼')+Math.abs(diff).toFixed(2)+' 前月比':'-')+'</div>'
+    +'</div>'
+    +'<div class="metric">'
+      +'<div class="metric-label">データ期間</div>'
+      +'<div class="metric-num">'+months.length+'</div>'
+      +'<div class="metric-sub">ヶ月分</div>'
+    +'</div>'
+    +'<div class="metric '+(trend>=0?'up':'dn')+'">'
+      +'<div class="metric-label">全期間トレンド</div>'
+      +'<div class="metric-num">'+(trend>=0?'▲':'▼')+Math.abs(trend)+'</div>'
+      +'<div class="metric-sub">'+months[0].month+'→'+lat.month+'</div>'
+    +'</div>'
+    +'<div class="metric '+(pr>=70?'up':pr>=50?'md':'dn')+'">'
+      +'<div class="metric-label">コメント満足度</div>'
+      +'<div class="metric-num">'+pr+'%</div>'
+      +'<div class="metric-sub">最新月</div>'
+    +'</div>';
+
+  // カテゴリー別推移
+  const labels=months.map(d=>mLabel(d.month));
+  if(chartInsCat)chartInsCat.destroy();
+  chartInsCat=new Chart(document.getElementById('ins-cat-chart'),{
+    type:'line',
+    data:{labels:labels,datasets:SCORE_TAGS.map(function(t,i){return {
+      label:t.label,
+      data:months.map(function(d){return +avgMonth(d,t.id).toFixed(2);}),
+      borderColor:cc(i),backgroundColor:'transparent',
+      tension:.35,borderWidth:2,pointRadius:3,pointBackgroundColor:cc(i)
+    };})},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:8}}},
+      scales:{y:{min:1,max:5,ticks:{font:{size:10}}}}}
+  });
+
+  // 月次変化量
+  if(months.length>=2){
+    const diffLabels=months.slice(1).map(function(d){return mLabel(d.month);});
+    const diffData=months.slice(1).map(function(d,i){return +(avgMonth(d)-avgMonth(months[i])).toFixed(2);});
+    if(chartInsDiff)chartInsDiff.destroy();
+    chartInsDiff=new Chart(document.getElementById('ins-diff-chart'),{
+      type:'bar',
+      data:{labels:diffLabels,datasets:[{
+        label:'前月比',data:diffData,
+        backgroundColor:diffData.map(function(v){return v>=0?'rgba(22,122,64,.7)':'rgba(196,27,27,.7)';}),
+        borderColor:diffData.map(function(v){return v>=0?'#167a40':'#c41b1b';}),
+        borderWidth:1,borderRadius:3
+      }]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        scales:{y:{ticks:{font:{size:10},callback:function(v){return (v>=0?'+':'')+v;}}}}}
+    });
+  }
+
+  // TOP5 / WORST5（全期間の質問別平均）
+  const qMap={};
+  months.forEach(function(md){
+    const qs=md.questions||defaultQuestions;
+    qs.forEach(function(q){
+      const s=md.scores[q.id];
+      if(!s||s<=0) return;
+      if(!qMap[q.label]) qMap[q.label]={sum:0,cnt:0,tag:q.tag};
+      qMap[q.label].sum+=s; qMap[q.label].cnt++;
+    });
+  });
+  const qAvgs=Object.entries(qMap).map(function(e){
+    return {label:e[0],tag:e[1].tag,avg:+(e[1].sum/e[1].cnt).toFixed(2)};
+  });
+  const top5=[].concat(qAvgs).sort(function(a,b){return b.avg-a.avg;}).slice(0,5);
+  const worst5=[].concat(qAvgs).sort(function(a,b){return a.avg-b.avg;}).slice(0,5);
+
+  function qRow(q,color){
+    const tagLabel=(SCORE_TAGS.find(function(t){return t.id===q.tag;})||{label:'?'}).label;
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:.5px solid var(--bdr);gap:6px">'
+      +'<span style="font-size:11px;color:var(--ink2);flex:1">'+q.label+'</span>'
+      +'<span class="tag-badge tag-'+(q.tag||'none')+'" style="font-size:9px;flex-shrink:0">'+tagLabel+'</span>'
+      +'<span style="font-family:DM Mono,monospace;font-size:13px;font-weight:600;color:'+color+';flex-shrink:0">'+q.avg+'</span>'
+      +'</div>';
+  }
+  document.getElementById('ins-top5').innerHTML=top5.length?top5.map(function(q){return qRow(q,'var(--green)');}).join(''):empty;
+  document.getElementById('ins-worst5').innerHTML=worst5.length?worst5.map(function(q){return qRow(q,'var(--red)');}).join(''):empty;
+
+  // 強み・弱み分析
+  var swEl=document.getElementById('ins-strength-weakness');
+  if(swEl&&qAvgs.length){
+    var sorted=[].concat(qAvgs).sort(function(a,b){return b.avg-a.avg;});
+    var strengths=sorted.slice(0,3);
+    var weaknesses=sorted.slice(-3).reverse();
+    // カテゴリー別平均でタグ単位の強み・弱みも出す
+    var tagAvgs=SCORE_TAGS.map(function(t){
+      return {tag:t, score:avgMonth(lat,t.id)};
+    }).filter(function(x){return x.score>0;}).sort(function(a,b){return b.score-a.score;});
+    var topTag=tagAvgs[0], lowTag=tagAvgs[tagAvgs.length-1];
+
+    function swRow(q,color,icon){
+      var tl=(SCORE_TAGS.find(function(t){return t.id===q.tag;})||{label:'?'}).label;
+      return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:.5px solid var(--bdr)">'
+        +'<span style="font-size:16px">'+icon+'</span>'
+        +'<div style="flex:1">'
+          +'<div style="font-size:12px;color:var(--ink)">'+q.label+'</div>'
+          +'<span class="tag-badge tag-'+(q.tag||'none')+'" style="font-size:9px">'+tl+'</span>'
+        +'</div>'
+        +'<span style="font-family:DM Mono,monospace;font-size:15px;font-weight:700;color:'+color+'">'+q.avg+'</span>'
+        +'</div>';
+    }
+
+    var html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">';
+    // 強み
+    html+='<div>';
+    html+='<div style="font-size:11px;font-weight:600;color:var(--green);margin-bottom:8px">💪 強み（高評価 TOP3）</div>';
+    html+=strengths.map(function(q){return swRow(q,'var(--green)','⭐');}).join('');
+    if(topTag){
+      html+='<div style="margin-top:10px;background:var(--green-l);border-radius:var(--r);padding:8px 10px;font-size:11px">'
+        +'<strong>最強カテゴリ：</strong>'+topTag.tag.label+' <span style="font-family:DM Mono,monospace;font-weight:700;color:var(--green)">'+topTag.score.toFixed(2)+'点</span>'
+        +'</div>';
+    }
+    html+='</div>';
+    // 弱み
+    html+='<div>';
+    html+='<div style="font-size:11px;font-weight:600;color:var(--red);margin-bottom:8px">📌 改善点（低評価 WORST3）</div>';
+    html+=weaknesses.map(function(q){return swRow(q,'var(--red)','⚠️');}).join('');
+    if(lowTag){
+      html+='<div style="margin-top:10px;background:var(--red-l);border-radius:var(--r);padding:8px 10px;font-size:11px">'
+        +'<strong>要改善カテゴリ：</strong>'+lowTag.tag.label+' <span style="font-family:DM Mono,monospace;font-weight:700;color:var(--red)">'+lowTag.score.toFixed(2)+'点</span>'
+        +'</div>';
+    }
+    html+='</div>';
+    html+='</div>';
+    swEl.innerHTML=html;
+  }
+}
+</script>
+</body>
+</html>
